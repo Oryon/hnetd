@@ -6,7 +6,7 @@
  * Copyright (c) 2013 cisco Systems, Inc.
  *
  * Created:       Wed Nov 20 13:15:53 2013 mstenber
- * Last modified: Thu Jun 11 09:48:33 2015 mstenber
+ * Last modified: Fri Jun 12 11:35:39 2015 mstenber
  * Edit time:     261 min
  *
  */
@@ -219,11 +219,6 @@ dncp_ep dncp_find_ep_by_name(dncp o, const char *name);
  * Find an endpoint that matches the id, or NULL if it does not exist.
  */
 dncp_ep dncp_find_ep_by_id(dncp o, ep_id_t ep_id);
-
-/**
- * Does the current DNCP instance have highest ID on the given endpoint?
- */
-bool dncp_ep_has_highest_id(dncp_ep ep);
 
 /**
  * Get next DNCP endpoint.
