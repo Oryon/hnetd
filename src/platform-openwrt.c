@@ -1310,7 +1310,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	struct uci_package* pkg;
 	struct uci_section* s;
 	struct uci_ptr ptr;
-	char[INET6_ADDRSTRLEN+4] addr;
+	char[PREFIX_MAXBUFFLEN] addr;
 	char* zone;
 
 	uci_load(ctx, "firewall", &pkg);
@@ -1318,10 +1318,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		uci_add_section(ctx, pkg, "rule", &s);
 
-		inet_ntop(AF_INET6, accessible_prefixes[i].prefixe, addr, INET6_ADDRSTRLEN);
-
-		strcat(addr, "/%d");
-		sprintf(addr, accessible_prefixes[i].plen);
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, accessible_prefixes[i].prefix, accessible_prefixes[i].plen);
 
 		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
 		uci_set(ctx, &ptr);
@@ -1336,10 +1333,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
 		uci_add_section(ctx, pkg, "rule", &s);
 
-		inet_ntop(AF_INET6, inet_prefixes[i].prefix, addr, INET6_ADDRSTRLEN);
-
-		strcat(addr, "/%d");
-		sprintf(addr, inet_prefixes[i].plen);
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, inet_prefixes[i].prefix, accessible_prefixes[i].plen);
 
 		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
 		uci_set(ctx, &ptr);

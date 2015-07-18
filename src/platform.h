@@ -10,8 +10,9 @@
 #include <netinet/in.h>
 
 #include "iface.h"
+#include "prefix.h"
 #include "prefix_utils.h"
-#include <arpa/inet.h>
+#include <netinet/in.h>
 
 
 // Platform specific initialization
