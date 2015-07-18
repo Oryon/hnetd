@@ -188,7 +188,7 @@ int main(__unused int argc, char *argv[])
 			{ NULL,          0,                      NULL,           0 }
 	};
 
-	while ((c = getopt_long(argc, argv, "?b::d:f:o:n:r:s:p:m:c:M:S", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "?b::d:f:o:n:r:s:p:m:c:M:Sw:", longopts, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			pidfile = (optarg && optarg[0]) ? optarg : "/var/run/hnetd.pid";

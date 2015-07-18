@@ -72,6 +72,7 @@ hncp_wifi hncp_wifi_init(hncp hncp, const char *scriptpath)
 	if(!(wifi = calloc(1, sizeof(*wifi))))
 		return NULL;
 
+	L_INFO("Initialize Auto-Wifi component with script %s", scriptpath);
 	INIT_LIST_HEAD(&wifi->ssids);
 	wifi->script = scriptpath;
 	wifi->dncp = hncp->dncp;
