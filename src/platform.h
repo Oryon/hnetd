@@ -73,6 +73,6 @@ void platform_set_iface(const char *name, bool enable);
 
 void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes);
 
-void flush_slicing_config(char* iface);
+void flush_slicing_config();
 
 #define PLATFORM_RPC_MAX 32
