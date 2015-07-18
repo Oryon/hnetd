@@ -2,11 +2,8 @@
  * IETF 93 Hackathon
  */
 
-#include "dncp_i.h"
 #include "hncp_slicing.h"
-#include "prefix_utils.h"
-#include "hncp_proto.h"
-#include "uci.h"
+
 
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
@@ -92,45 +89,52 @@ int do_add_rules(hncp h, uint32_t ep_id) {
 	dncp_node myNode = dncp_get_own_node(dncp_inst);
 	struct tlv_attr* a = NULL;
 	uint32_t slice_id = 0;
-	dncp_node_for_each_tlv_with_type(myNode, a, HNCP_T_SLICE_MEMBERSHIP){
-		hncp_slice_membership_data_p data = (hncp_slice_membership_data_p)a->data;
+	dncp_node_for_each_tlv_with_type(myNode, a, HNCP_T_SLICE_MEMBERSHIP)
+	{
+		hncp_slice_membership_data_p data =
+				(hncp_slice_membership_data_p) a->data;
 		uint32_t ep = ntohl(data->endpoint_id);
-		if(ep == ep_id){
+		if (ep == ep_id) {
 			slice_id = ntohl(data->slice_id);
 		}
 		break;
 	}
 	//Did we found our slice number or is it zero?
-	if(slice_id==0){
+	if (slice_id == 0) {
 		//TODO: flush everything
 		return 0;
 	}
 	//Now I have the slice number, let us find all the (node,ep) on this slice
 	slice_content_p s_cont = NULL;
 	dncp_node n = NULL;
-	dncp_for_each_node(dncp_inst,n){
+	dncp_for_each_node(dncp_inst,n)
+	{
 		struct tlv_attr* membership_tlv = NULL;
-		dncp_node_for_each_tlv_with_type(n,membership_tlv,HNCP_T_SLICE_MEMBERSHIP){
-			hncp_slice_membership_data_p data = (hncp_slice_membership_data_p)membership_tlv->data;
+		dncp_node_for_each_tlv_with_type(n,membership_tlv,HNCP_T_SLICE_MEMBERSHIP)
+		{
+			hncp_slice_membership_data_p data =
+					(hncp_slice_membership_data_p) membership_tlv->data;
 			uint32_t sid = ntohl(data->slice_id);
 			uint32_t ep = ntohl(data->endpoint_id);
-			if(sid==slice_id){
+			if (sid == slice_id) {
 				//It is the good slice, add an entry in s_cont
-				slice_content_p newEntry = calloc(1,sizeof(slice_content_s));
+				slice_content_p newEntry = calloc(1, sizeof(slice_content_s));
 				newEntry->ep_id = ep;
 				newEntry->node = n;
 				slice_content_p* endOfList = &s_cont;
-				while(*endOfList!=NULL)
-					endOfList =&((*endOfList)->next);
+				while (*endOfList != NULL)
+					endOfList = &((*endOfList)->next);
 				*endOfList = newEntry;
 				struct tlv_attr* pa_tlv = NULL;
 				//Now find the right prefix
-				dncp_node_for_each_tlv_with_type(n,pa_tlv,HNCP_T_ASSIGNED_PREFIX){
-					hncp_t_assigned_prefix_header pa_data = (hncp_t_assigned_prefix_header)pa_tlv->data;
-					if(ntohl(pa_data->ep_id)==ep_id){
+				dncp_node_for_each_tlv_with_type(n,pa_tlv,HNCP_T_ASSIGNED_PREFIX)
+				{
+					hncp_t_assigned_prefix_header pa_data =
+							(hncp_t_assigned_prefix_header) pa_tlv->data;
+					if (ntohl(pa_data->ep_id) == ep_id) {
 						//Now assign the right prefix
 						newEntry->p.plen = pa_data->prefix_length_bits;
-						memcpy(&newEntry->p.prefix,pa_data->prefix_data,16);
+						memcpy(&newEntry->p.prefix, pa_data->prefix_data, 16);
 						//We consider that plen = 0 means no prefix assigned (ignore entry)
 					}
 				}
@@ -138,17 +142,31 @@ int do_add_rules(hncp h, uint32_t ep_id) {
 		}
 	}
 //Now find the name of the interface
-dncp_ep dep = NULL;
-dep = dncp_find_ep_by_id(dncp_inst,ep_id);
-if(dep==NULL)
-	return -1;
+	dncp_ep dep = NULL;
+	dep = dncp_find_ep_by_id(dncp_inst, ep_id);
+	if (dep == NULL)
+		return -1;
 //Build the array of accessible prefixes
+	struct prefix* accessibles = NULL;
+	int current_len = 0;
+	while (s_cont != NULL) {
+		if(s_cont->p.plen!=0){
+			accessibles = realloc(accessibles,(current_len+1)*sizeof(struct prefix));
+			memcpy(&accessibles[current_len],&s_cont->p,sizeof(struct prefix));
+			current_len++;
+		}
+		slice_content_p next = s_cont->next;
+		free(s_cont);
+		s_cont = next;
+	}
+update_uci(dep->ifname,true,0,NULL,current_len,accessibles);
 
 }
 
 
-void update_uci(char* iface, bool internet, int nb_inet_prefixes, prefix* inet_prefixes, int nb_accessible_prefixes, prefix* accessible_prefixes){
-	uci_context* ctx = uci_alloc_context();
+
+void update_uci(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
+	struct uci_context* ctx = uci_alloc_context();
 
 	struct uci_package* pkg;
 	struct uci_section* s;
@@ -161,3 +179,4 @@ void update_uci(char* iface, bool internet, int nb_inet_prefixes, prefix* inet_p
 	uci_set(ctx, &ptr);
 
 }
+

@@ -7,7 +7,10 @@
 
 #include "hncp.h"
 #include "dncp.h"
-
+#include "dncp_i.h"
+#include "prefix_utils.h"
+#include "hncp_proto.h"
+#include <uci.h>
 #define HNCP_T_SLICE_MEMBERSHIP 	200
 
 typedef struct __packed hncp_slice_membership_tlv {
@@ -24,6 +27,6 @@ int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice);
 
 int do_add_rules(hncp h, uint32_t ep_id);
 
-void update_uci(char* iface, bool internet, int nb_inet_prefixes, prefix* inet_prefixes, int nb_accessible_prefixes, prefix* accessible_prefixes);
+void update_uci(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes);
 
 #endif /* HNCP_SLICING_H_ */
