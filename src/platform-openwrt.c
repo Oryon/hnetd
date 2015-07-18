@@ -1315,8 +1315,8 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	uci_load(ctx, "firewall", &pkg);
 
-	ptr.uci_package = pkg;
-	ptr.uci_section = s;
+	ptr.p = pkg;
+	ptr.s = s;
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		uci_add_section(ctx, pkg, "rule", &s);
