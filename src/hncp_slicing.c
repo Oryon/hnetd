@@ -3,7 +3,7 @@
  */
 
 #include "hncp_slicing.h"
-
+static int do_add_rules(hncp h, uint32_t ep_id);
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
 
@@ -69,7 +69,7 @@ int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
  * Issue: adding the rules is a heavy operation, we might want to wait till the state
  * is stable for each endpoint
  */
-void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add) {
+void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struct tlv_attr *tlv, bool __unused add) {
 	hncp h = subscriber.h;  //TODO something better, eg. save our slice_subscriber in hncp ext data
 	if (tlv_id(tlv) == HNCP_T_SLICE_MEMBERSHIP) {
 		// We always have to update something if one of our TLVs changes
@@ -98,7 +98,7 @@ void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_att
 			}
 		}
 		//Now find the ep(s) in this slice and update them
-		dncp_node_for_each_tlv_with_type(dncp_get_own_node(h), a, HNCP_T_SLICE_MEMBERSHIP) {
+		dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == slice) {
 				do_add_rules(h, ntohl(my_data->endpoint_id));
@@ -108,7 +108,7 @@ void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_att
 }
 
 
-int do_add_rules(hncp h, uint32_t ep_id) {
+static int do_add_rules(hncp h, uint32_t ep_id) {
 //First we get the slice number corresponding to this ep_id
 	dncp dncp_inst = hncp_get_dncp(h);
 	dncp_node myNode = dncp_get_own_node(dncp_inst);
@@ -184,6 +184,21 @@ int do_add_rules(hncp h, uint32_t ep_id) {
 		free(s_cont);
 		s_cont = next;
 	}
-	update_slicing_config(dep->ifname,true,0,NULL,current_len,accessibles);
-
+	struct prefix* dp_prefixes = NULL;
+	int current_num_dp = 0;
+	dncp_tlv dp_tlv = NULL;
+	dncp_for_each_tlv(dncp_inst,dp_tlv){
+		struct tlv_attr* attr = dncp_tlv_get_attr(dp_tlv);
+		if(tlv_id(attr)==HNCP_T_DELEGATED_PREFIX){
+			dp_prefixes = realloc(dp_prefixes,(current_num_dp+1)*sizeof(struct prefix));
+			hncp_t_delegated_prefix_header dp_data = (hncp_t_delegated_prefix_header)attr->data;
+			memcpy(&dp_prefixes[current_num_dp].prefix,dp_data->prefix_data,16);
+			dp_prefixes[current_num_dp].plen = dp_data->prefix_length_bits;
+			current_num_dp++;
+		}
+	}
+	update_slicing_config(dep->ifname,true,current_num_dp,dp_prefixes,current_len,accessibles);
+	free(dp_prefixes);
+	free(accessibles);
+return 0;
 }

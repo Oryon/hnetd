@@ -929,4 +929,4 @@ static void ipc_handle(struct uloop_fd *fd, __unused unsigned int events)
 	}
 }
 
-void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){}
+void update_slicing_config(__unused char* iface, __unused bool internet, __unused int nb_inet_prefixes,__unused struct prefix* inet_prefixes,__unused int nb_accessible_prefixes,__unused struct prefix* accessible_prefixes){}
