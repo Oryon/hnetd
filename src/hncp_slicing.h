@@ -24,7 +24,6 @@ void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_att
 
 //0 = remove slice
 int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice);
-int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice);
 
 int do_add_rules(hncp h, uint32_t ep_id);
 

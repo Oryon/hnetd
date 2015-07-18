@@ -29,8 +29,33 @@ int hncp_slicing_init(hncp hncp, const char __unused *scriptpath)
 	return 0;
 }
 
+/*
+ * Used to change endpoint slice assignment
+ *
+ * Is slice is 0, removes the assignment if any, otherwise adds or changes the assignment
+ */
 int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
 {
+	uint32_t endpoint_id = dncp_ep_get_id(dncp_find_ep_by_name(hncp_get_dncp(h), ifname));
+	bool nochange = false;
+	//Find our TLV if it exists, and always remove it first
+	struct tlv_attr *a;
+	dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
+		hncp_slice_membership_data_p tlv = tlv_data(a);
+		if (ntohl(tlv->endpoint_id) == endpoint_id) {
+			if (ntohl(tlv->slice_id) != slice) {
+				dncp_remove_tlv(hncp_get_dncp(h), container_of(a, dncp_tlv_s, tlv));
+			} else {
+				nochange = true;
+			}
+		}
+	}
+	if (slice != 0 && !nochange) {
+		hncp_slice_membership_data_s tlv;
+		tlv.endpoint_id = htonl(endpoint_id);
+		tlv.slice_id = htonl(slice);
+		dncp_add_tlv(hncp_get_dncp(h), HNCP_T_SLICE_MEMBERSHIP, &tlv, sizeof(hncp_slice_membership_data_s), 0);
+	}
 	return 0;
 }
 
@@ -38,52 +63,48 @@ int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
  * Monitors changes to SLICE_MEMBERSHIP TLVs and ASSIGNED_PREFIX TLVs
  *
  * Calls do_add_rules when a change is needed (and only when a change is needed)
+ * Note that this is called for both addition and deletion of a TLV, but in our
+ * case the behavior is exactly the same in both situations?
+ *
+ * Issue: adding the rules is a heavy operation, we might want to wait till the state
+ * is stable for each endpoint
  */
-
 void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add) {
 	hncp h = subscriber.h;  //TODO something better, eg. save our slice_subscriber in hncp ext data
 	if (tlv_id(tlv) == HNCP_T_SLICE_MEMBERSHIP) {
-		hncp_slice_membership_data_p data = tlv_data(tlv);
 		// We always have to update something if one of our TLVs changes
+		hncp_slice_membership_data_p data = tlv_data(tlv);
 		if (dncp_node_is_self(n)) {
 			do_add_rules(h, ntohl(data->endpoint_id));
 			return;
 		}
 		// We update the rules of all endpoints that are in the slice that changed
 		struct tlv_attr *a;
-		dncp_node_for_each_tlv_with_type(dncp_get_own_node(h), a, HNCP_T_SLICE_MEMBERSHIP) {
+		dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
 				do_add_rules(h, ntohl(my_data->endpoint_id));
 			}
 		}
-	}
-	//TODO: add ASSIGNED PREFIX TLVs monitoring
-
-}
-
-
-/*
- * Used to change endpoint slice assignment
- *
- * Is slice is 0, removes the assignment if any, otherwise adds or changes the assignment
- */
-int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice) {
-	//Find our TLV if it exists, and always remove it first
-	struct tlv_attr *a;
-	dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
-		hncp_slice_membership_data_p tlv = tlv_data(a);
-		if (ntohl(tlv->endpoint_id) == endpoint_id) {
-			dncp_remove_tlv(hncp_get_dncp(h), container_of(a, dncp_tlv_s, tlv));
+	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
+		hncp_t_assigned_prefix_header data = tlv_data(tlv);
+		// Find the slice affected by this change
+		uint32_t slice = 0;
+		struct tlv_attr *a;
+		dncp_node_for_each_tlv_with_type(n, a, HNCP_T_SLICE_MEMBERSHIP) {
+			hncp_slice_membership_data_p other_data = tlv_data(a);
+			if (data->ep_id == other_data->endpoint_id) {
+				slice = other_data->slice_id;
+			}
+		}
+		//Now find the ep(s) in this slice and update them
+		dncp_node_for_each_tlv_with_type(dncp_get_own_node(h), a, HNCP_T_SLICE_MEMBERSHIP) {
+			hncp_slice_membership_data_p my_data = tlv_data(a);
+			if (my_data->slice_id == slice) {
+				do_add_rules(h, ntohl(my_data->endpoint_id));
+			}
 		}
 	}
-	if (slice != 0) {
-		hncp_slice_membership_data_s tlv;
-		tlv.endpoint_id = htonl(endpoint_id);
-		tlv.slice_id = htonl(slice);
-		dncp_add_tlv(hncp_get_dncp(h), HNCP_T_SLICE_MEMBERSHIP, &tlv, sizeof(hncp_slice_membership_data_s), 0);
-	}
-	return 0;
 }
 
 
