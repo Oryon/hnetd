@@ -1328,7 +1328,7 @@ static char *get_openwrt_zone(char *ifname) {
 					case UCI_TYPE_LIST:
 						L_DEBUG("   Type list");
 						struct uci_element *if_e;
-						uci_foreach_element(o->v.list, if_e) {
+						uci_foreach_element(&(o->v.list), if_e) {
 							if (if_e->type == UCI_TYPE_ITEM) {
 								L_DEBUG("    Item with name %s", if_e);
 								if (!strcmp(if_e->name, ifname)) {	//Found!
