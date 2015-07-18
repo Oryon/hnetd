@@ -59,7 +59,7 @@ endif (${EXTRA_LINK_DIR})
 
 if(${BACKEND} MATCHES "openwrt")
   set(BACKEND_SOURCE "src/platform-openwrt.c")
-  set(BACKEND_LINK "ubus")
+  set(BACKEND_LINK "ubus" "uci")
 else(${BACKEND} MATCHES "openwrt")
   set(BACKEND_SOURCE "src/platform-generic.c")
   install(PROGRAMS generic/dhcp.script generic/dhcpv6.script generic/multicast.script generic/ohp.script generic/pcp.script generic/utils.script DESTINATION share/hnetd/)
