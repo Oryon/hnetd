@@ -2,13 +2,14 @@
  * IETF 93 Hackathon
  */
 
-#include "dncp.h"
+#include "dncp_i.h"
 #include "hncp_slicing.h"
 #include "prefix_utils.h"
 #include "hncp_proto.h"
 
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
+
 struct slice_content {
 	struct prefix p;
 	dncp_node node;
@@ -16,19 +17,71 @@ struct slice_content {
 	slice_content_p next;
 };
 
-int hncp_slicing_init(hncp hncp, const char *scriptpath)
+typedef struct slice_subscriber {
+	hncp h;
+	dncp_subscriber_s dncp_subscriber;
+} slice_subscriber_s, *slice_subscriber_p;
+
+static slice_subscriber_s subscriber = {0};
+
+int hncp_slicing_init(hncp hncp, const char __unused *scriptpath)
 {
-	dncp_subscriber sub = {0};
+	subscriber.dncp_subscriber.tlv_change_cb = &slicing_tlv_changed_callback;
+	subscriber.h = hncp;
+	dncp_subscribe(hncp_get_dncp(hncp), &subscriber.dncp_subscriber);
 	return 0;
 }
 
-void tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add) {
+/*
+ * Monitors changes to SLICE_MEMBERSHIP TLVs and ASSIGNED_PREFIX TLVs
+ *
+ * Calls do_add_rules when a change is needed (and only when a change is needed)
+ */
+
+void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add) {
+	hncp h = subscriber.h;  //TODO something better, eg. save our slice_subscriber in hncp ext data
+	if (tlv_id(tlv) == HNCP_T_SLICE_MEMBERSHIP) {
+		hncp_slice_membership_data_p data = tlv_data(tlv);
+		// We always have to update something if one of our TLVs changes
+		if (dncp_node_is_self(n)) {
+			do_add_rules(h, ntohl(data->endpoint_id));
+			return;
+		}
+		// We update the rules of all endpoints that are in the slice that changed
+		struct tlv_attr *a;
+		dncp_node_for_each_tlv_with_type(dncp_get_own_node(h), a, HNCP_T_SLICE_MEMBERSHIP) {
+			hncp_slice_membership_data_p my_data = tlv_data(a);
+			if (my_data->slice_id == data->slice_id) {
+				do_add_rules(h, ntohl(my_data->endpoint_id));
+			}
+		}
+	}
+	//TODO: add ASSIGNED PREFIX TLVs monitoring
 
 }
 
-//0 = remove slice
-int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice) {
 
+/*
+ * Used to change endpoint slice assignment
+ *
+ * Is slice is 0, removes the assignment if any, otherwise adds or changes the assignment
+ */
+int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice) {
+	//Find our TLV if it exists, and always remove it first
+	struct tlv_attr *a;
+	dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
+		hncp_slice_membership_data_p tlv = tlv_data(a);
+		if (ntohl(tlv->endpoint_id) == endpoint_id) {
+			dncp_remove_tlv(hncp_get_dncp(h), container_of(a, dncp_tlv_s, tlv));
+		}
+	}
+	if (slice != 0) {
+		hncp_slice_membership_data_s tlv;
+		tlv.endpoint_id = htonl(endpoint_id);
+		tlv.slice_id = htonl(slice);
+		dncp_add_tlv(hncp_get_dncp(h), HNCP_T_SLICE_MEMBERSHIP, &tlv, sizeof(hncp_slice_membership_data_s), 0);
+	}
+	return 0;
 }
 
 

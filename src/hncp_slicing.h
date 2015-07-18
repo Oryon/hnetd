@@ -6,6 +6,7 @@
 #define HNCP_SLICING_H_
 
 #include "hncp.h"
+#include "dncp.h"
 
 #define HNCP_T_SLICE_MEMBERSHIP 	200
 
@@ -16,8 +17,7 @@ typedef struct __packed hncp_slice_membership_tlv {
 
 int hncp_slicing_init(hncp hncp, const char *scriptpath);
 
-void tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv,
-		bool add);
+void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add);
 
 //0 = remove slice
 int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice);
