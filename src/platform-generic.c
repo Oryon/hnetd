@@ -549,7 +549,7 @@ int ipc_ifupdown(const char *method, int argc, char *const argv[])
 	char *entry;
 
 	int c, i;
-	while ((c = getopt(argc, argv, "c:dp:l:i:m:n:uk:P:4:6:D:L")) > 0) {
+	while ((c = getopt(argc, argv, "c:dp:l:i:m:n:uk:P:4:6:D:LS:")) > 0) {
 		switch(c) {
 		case 'c':
 			blobmsg_add_string(&b, "mode", optarg);
@@ -619,6 +619,9 @@ int ipc_ifupdown(const char *method, int argc, char *const argv[])
 		case 'L':
 			blobmsg_add_u8(&b, "ip4uplinklimit", 1);
 			break;
+		case 'S':
+			if(sscanf(optarg, "%d", &i) == 1)
+				blobmsg_add_u32(&b, "slice", i);
 		}
 	}
 
