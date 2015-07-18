@@ -18,12 +18,12 @@ typedef struct __packed hncp_slice_membership_tlv {
 	uint32_t slice_id;
 } hncp_slice_membership_data_s, *hncp_slice_membership_data_p;
 
-int hncp_slicing_init(hncp hncp, const char *scriptpath);
+int hncp_slicing_init(dncp dncp, const char *scriptpath);
 
 void slicing_tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add);
 
 //0 = remove slice
-int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice);
+int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice);
 
 
 #endif /* HNCP_SLICING_H_ */

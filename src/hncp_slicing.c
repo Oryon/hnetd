@@ -3,7 +3,7 @@
  */
 
 #include "hncp_slicing.h"
-static int do_add_rules(hncp h, uint32_t ep_id);
+static int do_add_rules(dncp d, uint32_t ep_id);
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
 
@@ -15,17 +15,17 @@ struct slice_content {
 };
 
 typedef struct slice_subscriber {
-	hncp h;
+	dncp d;
 	dncp_subscriber_s dncp_subscriber;
 } slice_subscriber_s, *slice_subscriber_p;
 
 static slice_subscriber_s subscriber = {0};
 
-int hncp_slicing_init(hncp hncp, const char __unused *scriptpath)
+int hncp_slicing_init(dncp dncp, const char __unused *scriptpath)
 {
 	subscriber.dncp_subscriber.tlv_change_cb = &slicing_tlv_changed_callback;
-	subscriber.h = hncp;
-	dncp_subscribe(hncp_get_dncp(hncp), &subscriber.dncp_subscriber);
+	subscriber.d = dncp;
+	dncp_subscribe(dncp, &subscriber.dncp_subscriber);
 	return 0;
 }
 
@@ -34,17 +34,17 @@ int hncp_slicing_init(hncp hncp, const char __unused *scriptpath)
  *
  * Is slice is 0, removes the assignment if any, otherwise adds or changes the assignment
  */
-int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
+int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
 {
-	uint32_t endpoint_id = dncp_ep_get_id(dncp_find_ep_by_name(hncp_get_dncp(h), ifname));
+	uint32_t endpoint_id = dncp_ep_get_id(dncp_find_ep_by_name(d, ifname));
 	bool nochange = false;
 	//Find our TLV if it exists, and always remove it first
 	struct tlv_attr *a;
-	dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
+	dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 		hncp_slice_membership_data_p tlv = tlv_data(a);
 		if (ntohl(tlv->endpoint_id) == endpoint_id) {
 			if (ntohl(tlv->slice_id) != slice) {
-				dncp_remove_tlv(hncp_get_dncp(h), container_of(a, dncp_tlv_s, tlv));
+				dncp_remove_tlv(d, container_of(a, dncp_tlv_s, tlv));
 			} else {
 				nochange = true;
 			}
@@ -54,7 +54,7 @@ int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
 		hncp_slice_membership_data_s tlv;
 		tlv.endpoint_id = htonl(endpoint_id);
 		tlv.slice_id = htonl(slice);
-		dncp_add_tlv(hncp_get_dncp(h), HNCP_T_SLICE_MEMBERSHIP, &tlv, sizeof(hncp_slice_membership_data_s), 0);
+		dncp_add_tlv(d, HNCP_T_SLICE_MEMBERSHIP, &tlv, sizeof(hncp_slice_membership_data_s), 0);
 	}
 	return 0;
 }
@@ -70,20 +70,20 @@ int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
  * is stable for each endpoint
  */
 void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struct tlv_attr *tlv, bool __unused add) {
-	hncp h = subscriber.h;  //TODO something better, eg. save our slice_subscriber in hncp ext data
+	dncp d = subscriber.d;  //TODO something better, eg. save our slice_subscriber in hncp ext data
 	if (tlv_id(tlv) == HNCP_T_SLICE_MEMBERSHIP) {
 		// We always have to update something if one of our TLVs changes
 		hncp_slice_membership_data_p data = tlv_data(tlv);
 		if (dncp_node_is_self(n)) {
-			do_add_rules(h, ntohl(data->endpoint_id));
+			do_add_rules(d, ntohl(data->endpoint_id));
 			return;
 		}
 		// We update the rules of all endpoints that are in the slice that changed
 		struct tlv_attr *a;
-		dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
+		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
-				do_add_rules(h, ntohl(my_data->endpoint_id));
+				do_add_rules(d, ntohl(my_data->endpoint_id));
 			}
 		}
 	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
@@ -98,19 +98,19 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 			}
 		}
 		//Now find the ep(s) in this slice and update them
-		dncp_node_for_each_tlv_with_type(dncp_get_own_node(hncp_get_dncp(h)), a, HNCP_T_SLICE_MEMBERSHIP) {
+		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == slice) {
-				do_add_rules(h, ntohl(my_data->endpoint_id));
+				do_add_rules(d, ntohl(my_data->endpoint_id));
 			}
 		}
 	}
 }
 
 
-static int do_add_rules(hncp h, uint32_t ep_id) {
+static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 //First we get the slice number corresponding to this ep_id
-	dncp dncp_inst = hncp_get_dncp(h);
+
 	dncp_node myNode = dncp_get_own_node(dncp_inst);
 	struct tlv_attr* a = NULL;
 	uint32_t slice_id = 0;

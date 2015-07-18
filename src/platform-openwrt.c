@@ -27,11 +27,8 @@
 #include "iface.h"
 #include "hncp_dump.h"
 #include "hncp.h"
-<<<<<<< Updated upstream
 #include <uci.h>
-=======
 #include "hncp_slicing.h"
->>>>>>> Stashed changes
 
 static struct ubus_context *ubus = NULL;
 static struct ubus_subscriber netifd;
