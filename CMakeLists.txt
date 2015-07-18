@@ -94,7 +94,7 @@ add_library(L_PA OBJECT src/pa_core.c src/pa_filters.c src/pa_rules.c src/pa_sto
 set(PA ${DNCP_BASE} ${BT} $<TARGET_OBJECTS:L_PA>)
 add_library(L_DNCP_PROTO OBJECT src/dncp_proto.c)
 set(DNCP_WITH_PROTO ${PA} $<TARGET_OBJECTS:L_DNCP_PROTO>)
-add_library(L_HNCP_GLUE OBJECT src/hncp.c src/hncp_pa.c src/hncp_sd.c src/hncp_link.c src/hncp_multicast.c)
+add_library(L_HNCP_GLUE OBJECT src/hncp.c src/hncp_pa.c src/hncp_sd.c src/hncp_link.c src/hncp_multicast.c src/hncp_wifi.c src/hncp_slicing.c)
 set(HNCP_WITH_GLUE ${DNCP_WITH_PROTO} $<TARGET_OBJECTS:L_HNCP_GLUE>)
 add_library(L_HNCP_IO OBJECT src/hncp_io.c ${DTLS_SOURCE} src/udp46.c)
 set(HNCP_IO $<TARGET_OBJECTS:L_HNCP_IO>)
