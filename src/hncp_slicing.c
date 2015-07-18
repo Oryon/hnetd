@@ -23,6 +23,7 @@ static slice_subscriber_s subscriber = {0};
 
 int hncp_slicing_init(dncp dncp, const char __unused *scriptpath)
 {
+	L_ERR("Init called");
 	subscriber.dncp_subscriber.tlv_change_cb = &slicing_tlv_changed_callback;
 	subscriber.d = dncp;
 	dncp_subscribe(dncp, &subscriber.dncp_subscriber);
@@ -36,6 +37,7 @@ int hncp_slicing_init(dncp dncp, const char __unused *scriptpath)
  */
 int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
 {
+	L_ERR("Set slice");
 	uint32_t endpoint_id = dncp_ep_get_id(dncp_find_ep_by_name(d, ifname));
 	bool nochange = false;
 	//Find our TLV if it exists, and always remove it first
@@ -70,11 +72,14 @@ int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
  * is stable for each endpoint
  */
 void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struct tlv_attr *tlv, bool __unused add) {
+	L_ERR("Callback called back");
 	dncp d = subscriber.d;  //TODO something better, eg. save our slice_subscriber in hncp ext data
 	if (tlv_id(tlv) == HNCP_T_SLICE_MEMBERSHIP) {
+		L_ERR("=== Membership TLV changed");
 		// We always have to update something if one of our TLVs changes
 		hncp_slice_membership_data_p data = tlv_data(tlv);
 		if (dncp_node_is_self(n)) {
+			L_ERR("==== My TLV changed");
 			do_add_rules(d, ntohl(data->endpoint_id));
 			return;
 		}
@@ -83,10 +88,12 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
+				L_ERR("==== Other TLV changed, with a slice of my interface");
 				do_add_rules(d, ntohl(my_data->endpoint_id));
 			}
 		}
 	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
+		L_ERR("=== Assigned TLV changed");
 		hncp_t_assigned_prefix_header data = tlv_data(tlv);
 		// Find the slice affected by this change
 		uint32_t slice = 0;
