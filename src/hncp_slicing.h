@@ -23,10 +23,10 @@ int hncp_slicing_init(hncp hncp, const char *scriptpath);
 void tlv_changed_callback(dncp_subscriber s, dncp_node n, struct tlv_attr *tlv, bool add);
 
 //0 = remove slice
-int set_endpoint_slice(uint32_t endpoint_id, uint32_t slice);
+int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice);
 
 
-bool is_endpoint_local_if(uint32_t ep);
+int do_add_rules(hncp h, uint32_t ep_id);
 
 
 
