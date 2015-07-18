@@ -1304,6 +1304,47 @@ static void handle_dump(__unused struct ubus_request *req,
 }
 
 
+static char *get_openwrt_zone(char *ifname) {
+	struct uci_context* ctx = uci_alloc_context();
+	struct uci_package* pkg;
+	struct uci_element *e;
+	uci_load(ctx, "network", &pkg);
+	L_DEBUG("Loaded network package");
+	uci_foreach_element( &pkg->sections, e) {
+		struct uci_section *s = uci_to_section(e);
+		L_DEBUG(" Section of type %s, name %s", s->type, s->e.name);
+		if (!strcmp(s->type, "interface")) {		//Section interface
+			uci_foreach_element(&s->options, e) {
+				struct uci_option *o = uci_to_option(e);
+				L_DEBUG("  Option of name %s", o->e.name);
+				if (!strcmp(o->e.name, "ifname")) {
+					switch (o->type) {
+					case UCI_TYPE_STRING:
+						L_DEBUG("   Type string, value %s", o->v.string);
+						if (!strcmp(o->v.string, ifname)) {		//Found!
+							return s->e.name;
+						}
+						break;
+					case UCI_TYPE_LIST:
+						L_DEBUG("   Type list");
+						struct uci_element *if_e;
+						uci_foreach_element(o->v.list, if_e) {
+							if (if_e->type == UCI_TYPE_ITEM) {
+								L_DEBUG("    Item with name %s", if_e);
+								if (!strcmp(if_e->name, ifname)) {	//Found!
+									return s->e.name;
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
 void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
 
 	struct uci_context* ctx = uci_alloc_context();
