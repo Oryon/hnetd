@@ -954,4 +954,4 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes, str
 
 }
 
-void flush_slicing_config(){}
+void flush_slicing_config(__unused char* iface){}
