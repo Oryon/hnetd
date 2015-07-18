@@ -24,8 +24,6 @@ int set_endpoint_slice(hncp h, uint32_t endpoint_id, uint32_t slice);
 
 int do_add_rules(hncp h, uint32_t ep_id);
 
-void update_uci(uint32_t endpoint_id, bool internet, int nb_inet_prefixes,
-		struct prefix* inet_prefixes, int nb_accessible_prefixes,
-		struct prefix* accessible_prefixes);
+void update_uci(char* iface, bool internet, int nb_inet_prefixes, prefix* inet_prefixes, int nb_accessible_prefixes, prefix* accessible_prefixes);
 
 #endif /* HNCP_SLICING_H_ */

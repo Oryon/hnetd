@@ -6,6 +6,7 @@
 #include "hncp_slicing.h"
 #include "prefix_utils.h"
 #include "hncp_proto.h"
+#include "uci.h"
 
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
@@ -142,5 +143,21 @@ dep = dncp_find_ep_by_id(dncp_inst,ep_id);
 if(dep==NULL)
 	return -1;
 //Build the array of accessible prefixes
+
+}
+
+
+void update_uci(uint32_t endpoint_id, bool internet, int nb_inet_prefixes, prefix* inet_prefixes, int nb_accessible_prefixes, prefix* accessible_prefixes){
+	uci_context* ctx = uci_alloc_context();
+
+	struct uci_package* pkg;
+	struct uci_section* s;
+
+	uci_load(ctx, "firewall", &pkg);
+
+	uci_add_section(ctx, pkg, "rule", &s);
+
+	struct uci_ptr ptr = { .package = "firewall", .section = "rule", .option = "key", .value = "value" };
+	uci_set(ctx, &ptr);
 
 }
