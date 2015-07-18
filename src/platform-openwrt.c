@@ -401,6 +401,7 @@ enum {
 	DATA_ATTR_REQADDRESS,
 	DATA_ATTR_REQPREFIX,
 	DATA_ATTR_DHCPV6_CLIENTID,
+	DATA_ATTR_SLICE,
 	DATA_ATTR_CREATED,
 	DATA_ATTR_MAX
 };
@@ -443,6 +444,7 @@ static const struct blobmsg_policy data_attrs[DATA_ATTR_MAX] = {
 	[DATA_ATTR_REQADDRESS] = { .name = "reqaddress", .type = BLOBMSG_TYPE_STRING },
 	[DATA_ATTR_REQPREFIX] = { .name = "reqprefix", .type = BLOBMSG_TYPE_STRING },
 	[DATA_ATTR_DHCPV6_CLIENTID] = { .name = "dhcpv6_clientid", .type = BLOBMSG_TYPE_STRING },
+	[DATA_ATTR_SLICE] = { .name = "slice", .type = BLOBMSG_TYPE_INT32 },
 };
 
 
