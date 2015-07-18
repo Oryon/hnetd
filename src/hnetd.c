@@ -31,6 +31,7 @@
 #include "pd.h"
 #include "dncp_trust.h"
 #include "hncp_wifi.h"
+#include "hncp_slicing.h"
 
 #ifdef DTLS
 #include "dtls.h"
@@ -375,7 +376,7 @@ int main(__unused int argc, char *argv[])
 		return 17;
 	}
 
-	hncp_slicing_init(h->dncp, NULL);
+	hncp_slicing_init(hncp_get_dncp(h), NULL);
 
 	//PA configuration
 
