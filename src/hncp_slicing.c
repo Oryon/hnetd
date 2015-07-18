@@ -4,6 +4,8 @@
 
 #include "dncp.h"
 #include "hncp_slicing.h"
+#include "prefix_utils.h"
+#include "hncp_proto.h"
 
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
@@ -71,7 +73,7 @@ int do_add_rules(hncp h, uint32_t ep_id) {
 				//Now find the right prefix
 				dncp_node_for_each_tlv_with_type(n,pa_tlv,HNCP_T_ASSIGNED_PREFIX){
 					hncp_t_assigned_prefix_header pa_data = (hncp_t_assigned_prefix_header)pa_tlv->data;
-					if(ntohl(pa_data->ep_id)==ep){
+					if(ntohl(pa_data->ep_id)==ep_id){
 						//Now assign the right prefix
 						newEntry->p.plen = pa_data->prefix_length_bits;
 						memcpy(&newEntry->p.prefix,pa_data->prefix_data,16);
@@ -81,6 +83,11 @@ int do_add_rules(hncp h, uint32_t ep_id) {
 			}
 		}
 	}
-//Now find the name of the
+//Now find the name of the interface
+dncp_ep dep = NULL;
+dep = dncp_find_ep_by_id(dncp_inst,ep_id);
+if(dep==NULL)
+	return -1;
+//Build the array of accessible prefixes
 
 }
