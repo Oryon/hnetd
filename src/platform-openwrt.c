@@ -1364,8 +1364,13 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	ptr.p = pkg;
 	ptr.s = s;
 
+
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		uci_add_section(ctx, pkg, "rule", &s);
+
+		ptr.option = NULL;
+		ptr.value = "Slicing";
+		uci_rename(ctx, ptr);
 
 		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 
@@ -1385,6 +1390,10 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
 		uci_add_section(ctx, pkg, "rule", &s);
 
+		ptr.option = NULL;
+		ptr.value = "Slicing";
+		uci_rename(ctx, ptr);
+
 		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(inet_prefixes[i].prefix), inet_prefixes[i].plen);
 
 		ptr.option = "src";
@@ -1401,6 +1410,10 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	}
 
 	uci_add_section(ctx, pkg, "rule", &s); //Allow or forbid access to the internet
+
+	ptr.option = NULL;
+	ptr.value = "Slicing";
+	uci_rename(ctx, ptr);
 
 	ptr.option = "src";
 	ptr. value = zone;
@@ -1422,6 +1435,31 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	uci_set(ctx, &ptr);
 
 	uci_commit(ctx, &pkg, true);
+
+	uci_free_context(ctx);
+}
+
+void flush_slicing_config(){
+	struct uci_context* ctx = uci_alloc_context();
+	struct uci_package* pkg;
+	struct uci_section* s;
+	struct uci_ptr ptr;
+
+	ptr.p = pkg;
+
+	uci_load(ctx, "firewall", &pkg);
+
+	s = uci_lookup_section(ctx, pkg, "Slicing");
+
+	while(s != NULL){
+		ptr.s = s;
+		uci_delete(ctx, ptr);
+		s = uci_lookup_section(ctx, pkg, "Slicing");
+	}
+
+	uci_commit(ctx, &pkg, true);
+
+	uci_free_context(ctx);
 }
 
 
