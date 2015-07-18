@@ -29,8 +29,8 @@ struct hncp_wifi_struct {
 	dncp_subscriber_s subscriber;
 };
 
-static void wifi_ssid_notify(hncp_wifi wifi,
-		dncp_node n, struct tlv_attr *tlv, bool add)
+static void wifi_ssid_notify(__unused hncp_wifi wifi,
+		__unused dncp_node n, __unused struct tlv_attr *tlv, __unused bool add)
 {
 
 }
@@ -41,8 +41,8 @@ int hncp_wifi_modssid(hncp_wifi wifi, uint32_t slice,
 	struct hncp_t_wifi_ssid_struct tlv = {
 			.slice = htonl(slice)
 	};
-	strcpy(tlv.ssid, ssid);
-	strcpy(tlv.password, password);
+	strcpy((char *)tlv.ssid, ssid);
+	strcpy((char *)tlv.password, password);
 	dncp_tlv dtlv = dncp_find_tlv(wifi->dncp, HNCP_T_SSID, &tlv, sizeof(tlv));
 	if(del) {
 		if(dtlv) {
