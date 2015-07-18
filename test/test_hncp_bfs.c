@@ -49,6 +49,8 @@ void platform_set_prefix_route(__unused const struct prefix *p, __unused bool en
 void platform_restart_dhcpv4(__unused struct iface *c) {}
 void platform_set_snat(__unused struct iface *c, __unused const struct prefix *p) {}
 void hncp_sd_dump_link_fqdn(__unused hncp_sd sd, __unused dncp_ep l, __unused const char *ifname, __unused char *buf, __unused size_t buf_len) {}
+void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){}
+
 
 void hncp_bfs_one(void)
 {

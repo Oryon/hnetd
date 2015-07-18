@@ -158,6 +158,6 @@ int do_add_rules(hncp h, uint32_t ep_id) {
 		free(s_cont);
 		s_cont = next;
 	}
-update_uci(dep->ifname,true,0,NULL,current_len,accessibles);
+	update_slicing_config(dep->ifname,true,0,NULL,current_len,accessibles);
 
 }

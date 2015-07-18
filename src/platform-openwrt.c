@@ -27,6 +27,7 @@
 #include "iface.h"
 #include "hncp_dump.h"
 #include "hncp.h"
+#include <uci.h>
 
 static struct ubus_context *ubus = NULL;
 static struct ubus_subscriber netifd;
@@ -1293,7 +1294,7 @@ static void handle_dump(__unused struct ubus_request *req,
 }
 
 
-void update_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
+void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
 	struct uci_context* ctx = uci_alloc_context();
 
 	struct uci_context* ctx = uci_alloc_context();

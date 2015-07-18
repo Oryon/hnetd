@@ -36,6 +36,7 @@ void platform_set_snat(__unused struct iface *c, __unused const struct prefix *p
 void hncp_sd_dump_link_fqdn(__unused hncp_sd sd, __unused dncp_ep l, __unused const char *ifname, __unused char *buf, __unused size_t buf_len) {}
 dncp_ep dncp_find_ep_by_name(__unused dncp h, __unused const char *ifname) { return NULL; }
 void hncp_link_register(__unused struct hncp_link *c, __unused struct hncp_link_user *u) {}
+void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){}
 
 void intiface_mock(__unused struct iface_user *u, __unused const char *ifname, bool enabled)
 {

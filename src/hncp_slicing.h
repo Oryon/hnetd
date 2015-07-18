@@ -9,6 +9,8 @@
 #include "dncp.h"
 #include "dncp_i.h"
 #include "hncp_proto.h"
+#include "prefix_utils.h"
+#include "platform.h"
 #define HNCP_T_SLICE_MEMBERSHIP 	200
 
 typedef struct __packed hncp_slice_membership_tlv {
