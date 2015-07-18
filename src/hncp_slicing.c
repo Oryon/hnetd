@@ -147,7 +147,7 @@ if(dep==NULL)
 }
 
 
-void update_uci(uint32_t endpoint_id, bool internet, int nb_inet_prefixes, prefix* inet_prefixes, int nb_accessible_prefixes, prefix* accessible_prefixes){
+void update_uci(char* iface, bool internet, int nb_inet_prefixes, prefix* inet_prefixes, int nb_accessible_prefixes, prefix* accessible_prefixes){
 	uci_context* ctx = uci_alloc_context();
 
 	struct uci_package* pkg;
