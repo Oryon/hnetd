@@ -7,6 +7,7 @@
 
 #include "hncp_wifi.h"
 #include "hncp_i.h"
+#include "hnetd.h"
 
 #define HNCP_SSIDS 2 //Number of supported SSID provided to the script
 
@@ -95,6 +96,8 @@ static void wifi_ssid_notify(__unused hncp_wifi wifi,
 int hncp_wifi_modssid(hncp_wifi wifi, uint32_t slice,
 		const char *ssid, const char *password, bool del)
 {
+	L_INFO("Auto-Wifi mod-ssid %s ssid %s password %s on slice %d",
+			del?"del":"add", ssid, password, (int) slice);
 	struct hncp_t_wifi_ssid_struct tlv = {
 			.slice = htonl(slice)
 	};

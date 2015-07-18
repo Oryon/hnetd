@@ -94,7 +94,7 @@ int usage() {
 	 "\t--verify-path <(DTLS) path to trusted cert file>\n"
 	 "\t--verify-dir <(DTLS) path to trusted cert directory>\n"
 	 "\t-M multicast_script (enables draft-pfister-homenet-multicast support)\n"
-	 "\t-w wifi_script (enables ssid autoconfiguration)\n"
+	 "\t-w wifi_script,wifi_params,... (enables ssid autoconfiguration)\n"
   );
     return(3);
 }
@@ -156,7 +156,7 @@ int main(__unused int argc, char *argv[])
 	const char *dtls_path = NULL;
 	const char *dtls_dir = NULL;
 	const char *pidfile = NULL;
-	const char *wifiscript = NULL;
+	const char *wifi = NULL;
 	bool strict = false;
 
 	enum {
@@ -215,7 +215,7 @@ int main(__unused int argc, char *argv[])
 			multicast_params.multicast_script = optarg;
 			break;
 		case 'w':
-			wifiscript = optarg;
+			wifi = optarg;
 			break;
 		case 'S':
 			strict = true;
@@ -340,12 +340,30 @@ int main(__unused int argc, char *argv[])
 			}
 	}
 
-	if(wifiscript) {
-		hncp_wifi w = hncp_wifi_init(h, wifiscript);
-		if(!w) {
-			L_ERR("unable to initialize auto-wifi, exiting");
-			return 124;
+	if(wifi) {
+		hncp_wifi w = NULL;
+		char *entry, *buf = strdup(wifi);
+		for (entry = strtok(buf, ","); entry; entry = strtok(NULL, ",")) {
+			if(!w) {
+				w = hncp_wifi_init(h, strdup(entry));
+				if(!w) {
+					L_ERR("unable to initialize auto-wifi, exiting");
+					return 124;
+				}
+			} else {
+				char ssid[20];
+				char password[20];
+				int slice;
+				int i;
+				if((i = sscanf(entry, "%[^:]:%[^:]:%d", ssid, password, &slice)) != 3) {
+					L_ERR("Invalid argument %s in %s", entry, wifi);
+					return 125;
+				} else {
+					hncp_wifi_modssid(w, slice, ssid, password, 0);
+				}
+			}
 		}
+		free(buf);
 	}
 
 	if (routing_script)
@@ -356,6 +374,8 @@ int main(__unused int argc, char *argv[])
 		L_ERR("Unable to initialize PA");
 		return 17;
 	}
+
+	hncp_slicing_init(h->dncp, NULL);
 
 	//PA configuration
 
