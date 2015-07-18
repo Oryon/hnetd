@@ -1305,31 +1305,70 @@ static void handle_dump(__unused struct ubus_request *req,
 
 
 void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
-	struct uci_context* ctx = uci_alloc_context();
 
 	struct uci_context* ctx = uci_alloc_context();
 	struct uci_package* pkg;
 	struct uci_section* s;
 	struct uci_ptr ptr;
 	char[INET6_ADDRSTRLEN+4] addr;
+	char* zone;
 
 	uci_load(ctx, "firewall", &pkg);
 
-	for (int i = 0; i < nb_accessible_prefixes; i++){
+	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		uci_add_section(ctx, pkg, "rule", &s);
 
 		inet_ntop(AF_INET6, accessible_prefixes[i].prefixe, addr, INET6_ADDRSTRLEN);
 
 		strcat(addr, "/%d");
-
 		sprintf(addr, accessible_prefixes[i].plen);
 
-		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = addr };
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
+		uci_set(ctx, &ptr);
 
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "dst_ip", .value = addr };
+		uci_set(ctx, &ptr);
+
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "target", .value = "ACCEPT" };
+		uci_set(ctx, &ptr);
 	}
-	struct uci_ptr
+
+	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
+		uci_add_section(ctx, pkg, "rule", &s);
+
+		inet_ntop(AF_INET6, inet_prefixes[i].prefix, addr, INET6_ADDRSTRLEN);
+
+		strcat(addr, "/%d");
+		sprintf(addr, inet_prefixes[i].plen);
+
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
+		uci_set(ctx, &ptr);
+
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "dst_ip", .value = addr };
+		uci_set(ctx, &ptr);
+
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "target", .value = "REJECT" };
+		uci_set(ctx, &ptr);
+	}
+
+	uci_add_section(ctx, pkg, "rule", &s); //Allow or forbid access to the internet
+
+	ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
 	uci_set(ctx, &ptr);
 
+	ptr = { .uci_package = pkg, .uci_section = s, .option = "dst_ip", .value = "::/0" };
+	uci_set(ctx, &ptr);
+
+	if (internet){
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "target", .value = "ACCEPT" };
+	}
+	else {
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "target", .value = "REJECT" };
+	}
+
+	uci_set(ctx, &ptr);
+
+	uci_commit(ctx, &pkg, true);
 }
 
 
