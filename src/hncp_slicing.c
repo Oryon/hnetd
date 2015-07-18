@@ -3,7 +3,7 @@
  */
 
 #include "hncp_slicing.h"
-
+#include <arpa/inet.h>
 
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
@@ -164,18 +164,30 @@ update_uci(dep->ifname,true,0,NULL,current_len,accessibles);
 }
 
 
-
 void update_uci(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
 	struct uci_context* ctx = uci_alloc_context();
 
+	struct uci_context* ctx = uci_alloc_context();
 	struct uci_package* pkg;
 	struct uci_section* s;
+	struct uci_ptr ptr;
+	char[INET6_ADDRSTRLEN+4] addr;
 
 	uci_load(ctx, "firewall", &pkg);
 
-	uci_add_section(ctx, pkg, "rule", &s);
+	for (int i = 0; i < nb_accessible_prefixes; i++){
+		uci_add_section(ctx, pkg, "rule", &s);
 
-	struct uci_ptr ptr = { .package = "firewall", .section = "rule", .option = "key", .value = "value" };
+		inet_ntop(AF_INET6, accessible_prefixes[i].prefixe, addr, INET6_ADDRSTRLEN);
+
+		strcat(addr, "/%d");
+
+		sprintf(addr, accessible_prefixes[i].plen);
+
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = addr };
+
+	}
+	struct uci_ptr
 	uci_set(ctx, &ptr);
 
 }
