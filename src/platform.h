@@ -10,6 +10,9 @@
 #include <netinet/in.h>
 
 #include "iface.h"
+#include "prefix_utils.h"
+#include <uci.h>
+#include <arpa/inet.h>
 
 
 // Platform specific initialization
@@ -67,5 +70,7 @@ int platform_rpc_multicall(int argc, char *const argv[]);
 
 // Set platform
 void platform_set_iface(const char *name, bool enable);
+
+void update_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes);
 
 #define PLATFORM_RPC_MAX 32

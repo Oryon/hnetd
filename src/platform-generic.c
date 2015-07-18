@@ -919,3 +919,6 @@ static void ipc_handle(struct uloop_fd *fd, __unused unsigned int events)
 	}
 }
 
+void update_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
+
+}

@@ -1292,3 +1292,33 @@ static void handle_dump(__unused struct ubus_request *req,
 	iface_commit();
 }
 
+
+void update_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
+	struct uci_context* ctx = uci_alloc_context();
+
+	struct uci_context* ctx = uci_alloc_context();
+	struct uci_package* pkg;
+	struct uci_section* s;
+	struct uci_ptr ptr;
+	char[INET6_ADDRSTRLEN+4] addr;
+
+	uci_load(ctx, "firewall", &pkg);
+
+	for (int i = 0; i < nb_accessible_prefixes; i++){
+		uci_add_section(ctx, pkg, "rule", &s);
+
+		inet_ntop(AF_INET6, accessible_prefixes[i].prefixe, addr, INET6_ADDRSTRLEN);
+
+		strcat(addr, "/%d");
+
+		sprintf(addr, accessible_prefixes[i].plen);
+
+		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = addr };
+
+	}
+	struct uci_ptr
+	uci_set(ctx, &ptr);
+
+}
+
+
