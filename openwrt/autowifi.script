@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "Auto-Wifi Script"
+echo $@

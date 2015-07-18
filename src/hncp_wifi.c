@@ -2,10 +2,13 @@
  * IETF 93 Hackathon
  */
 
+#include <libubox/list.h>
+#include <sys/wait.h>
+
 #include "hncp_wifi.h"
 #include "hncp_i.h"
 
-#define HNCP_SSIDS 2; //Number of supported SSID provided to the script
+#define HNCP_SSIDS 2 //Number of supported SSID provided to the script
 
 struct hncp_t_wifi_ssid_struct {
 	uint32_t slice;
@@ -15,24 +18,78 @@ struct hncp_t_wifi_ssid_struct {
 typedef struct hncp_t_wifi_ssid_struct hncp_t_wifi_ssid_s, *hncp_t_wifi_ssid;
 
 typedef struct hncp_ssid_struct {
-	struct list_head le;
-	int32_t id; // A pushed ID or -1
+	uint32_t id;
 	uint32_t slice;
-	uint8_t ssid[32];
-	uint8_t password[32];
+	char ssid[32];
+	char password[32];
 } hncp_ssid_s, *hncp_ssid;
 
 struct hncp_wifi_struct {
-	struct list_head ssids;
 	const char *script;
 	dncp dncp;
 	dncp_subscriber_s subscriber;
+	hncp_ssid_s ssids[HNCP_SSIDS];
 };
+
+static hncp_ssid wifi_find_ssid(hncp_wifi wifi, uint8_t *ssid,
+		uint8_t *password, uint32_t slice)
+{
+	int i;
+	for(i=0; i<HNCP_SSIDS; i++) {
+		if(!strcmp((char *)wifi->ssids[i].ssid, (char *)ssid) &&
+				!strcmp((char *)wifi->ssids[i].password, (char *)password) &&
+				wifi->ssids[i].slice == slice)
+			return &wifi->ssids[i];
+	}
+	return NULL;
+}
+
+static hncp_ssid wifi_find_free_ssid(hncp_wifi wifi)
+{
+	int i;
+	for(i=0; i<HNCP_SSIDS; i++) {
+		if(!strlen(wifi->ssids[i].ssid)) {
+			wifi->ssids[i].id = i;
+			return &wifi->ssids[i];
+		}
+	}
+	return NULL;
+}
 
 static void wifi_ssid_notify(__unused hncp_wifi wifi,
 		__unused dncp_node n, __unused struct tlv_attr *tlv, __unused bool add)
 {
+	hncp_t_wifi_ssid tlv_data = (hncp_t_wifi_ssid) tlv->data;
+	hncp_ssid ssid = wifi_find_ssid(wifi, tlv_data->ssid, tlv_data->password, ntohl(tlv_data->slice));
+	if(add && !ssid) {
+		ssid = wifi_find_free_ssid(wifi);
+		if(!ssid) {
+			L_ERR("Cannot handle that many ssids...");
+			return;
+		}
+		strcpy(ssid->password, (char *)tlv_data->password);
+		strcpy(ssid->ssid,  (char *)tlv_data->ssid);
+		ssid->slice = ntohl(tlv_data->slice);
 
+		char id[10], sl[10];
+		sprintf(id, "%d", (int)ssid->id);
+		sprintf(sl, "%d", (int)ssid->slice);
+		char *argv[] = {wifi->script, "addssid", id, ssid->ssid, ssid->password, sl, NULL};
+		pid_t pid = hncp_run(argv);
+		int res = waitpid(pid, NULL, 0);
+		L_INFO("Auto-Wifi script returned %d", res);
+	} else if(!add && ssid) {
+		char id[10], sl[10];
+		sprintf(id, "%d", (int)ssid->id);
+		sprintf(sl, "%d", (int)ssid->slice);
+		char *argv[] = {wifi->script, "delssid", id, ssid->ssid, ssid->password, sl, NULL};
+		pid_t pid = hncp_run(argv);
+		int res = waitpid(pid, NULL, 0);
+		L_INFO("Auto-Wifi script returned %d", res);
+
+		ssid->ssid[0] = 0;
+		ssid->ssid[1] = 1;
+	}
 }
 
 int hncp_wifi_modssid(hncp_wifi wifi, uint32_t slice,
@@ -73,7 +130,6 @@ hncp_wifi hncp_wifi_init(hncp hncp, const char *scriptpath)
 		return NULL;
 
 	L_INFO("Initialize Auto-Wifi component with script %s", scriptpath);
-	INIT_LIST_HEAD(&wifi->ssids);
 	wifi->script = scriptpath;
 	wifi->dncp = hncp->dncp;
 	wifi->subscriber.tlv_change_cb = wifi_tlv_cb;
