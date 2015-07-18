@@ -886,9 +886,9 @@ static void ipc_handle(struct uloop_fd *fd, __unused unsigned int events)
 
 			uint32_t slice;
 			if(tb[OPT_SLICE] && (slice = blobmsg_get_u32(tb[OPT_SLICE]))) {
-				hncp_slicing_set_slice(dncp_p, c->ifname, slice);
+				hncp_slicing_set_slice(dncp_p, iface->ifname, slice);
 			} else {
-				hncp_slicing_set_slice(dncp_p, c->ifname, 0);
+				hncp_slicing_set_slice(dncp_p, iface->ifname, 0);
 			}
 
 			hncp_pa_conf_iface_flush(hncp_pa_p, iface->ifname); //Stop HNCP_PA UPDATE
