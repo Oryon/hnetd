@@ -1318,7 +1318,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		uci_add_section(ctx, pkg, "rule", &s);
 
-		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, accessible_prefixes[i].prefix, accessible_prefixes[i].plen);
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 
 		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
 		uci_set(ctx, &ptr);
@@ -1333,7 +1333,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
 		uci_add_section(ctx, pkg, "rule", &s);
 
-		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, inet_prefixes[i].prefix, accessible_prefixes[i].plen);
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(inet_prefixes[i].prefix), inet_prefixes[i].plen);
 
 		ptr = { .uci_package = pkg, .uci_section = s, .option = "src", .value = zone };
 		uci_set(ctx, &ptr);
