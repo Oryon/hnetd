@@ -29,6 +29,11 @@ int hncp_slicing_init(hncp hncp, const char __unused *scriptpath)
 	return 0;
 }
 
+int hncp_slicing_set_slice(hncp h, char *ifname, uint32_t slice)
+{
+	return 0;
+}
+
 /*
  * Monitors changes to SLICE_MEMBERSHIP TLVs and ASSIGNED_PREFIX TLVs
  *

@@ -30,6 +30,7 @@
 #include "hncp_dump.h"
 #include "dncp_trust.h"
 #include "hncp_pa.h"
+#include "hncp_slicing.h"
 
 static char backend[] = CMAKE_INSTALL_PREFIX "/sbin/hnetd-backend";
 static const char *hnetd_pd_socket = NULL;
@@ -487,6 +488,7 @@ enum ipc_option {
 	OPT_KEEPALIVE_INTERVAL,
 	OPT_TRICKLE_K,
 	OPT_DNSNAME,
+	OPT_SLICE,
 	OPT_MAX
 };
 
@@ -510,6 +512,7 @@ struct blobmsg_policy ipc_policy[] = {
 	[OPT_KEEPALIVE_INTERVAL] = { .name = "keepalive_interval", .type = BLOBMSG_TYPE_INT32 },
 	[OPT_TRICKLE_K] = { .name = "trickle_k", .type = BLOBMSG_TYPE_INT32 },
 	[OPT_DNSNAME] = { .name = "dnsname", .type = BLOBMSG_TYPE_STRING},
+	[OPT_SLICE] = { .name = "slice", .type = BLOBMSG_TYPE_INT32 },
 };
 
 enum ipc_prefix_option {
@@ -876,6 +879,13 @@ static void ipc_handle(struct uloop_fd *fd, __unused unsigned int events)
 				       && sscanf(blobmsg_get_string(tb[OPT_IP4_PLEN]), "%u", &ip4_plen) == 1
 				       && ip4_plen <= 32) {
 				hncp_pa_conf_set_ip4_plen(hncp_pa_p, iface->ifname, ip4_plen + 96);
+			}
+
+			uint32_t slice;
+			if(tb[OPT_SLICE] && (slice = blobmsg_get_u32(tb[OPT_SLICE]))) {
+				hncp_slicing_set_slice(dncp_p, c->ifname, slice);
+			} else {
+				hncp_slicing_set_slice(dncp_p, c->ifname, 0);
 			}
 
 			hncp_pa_conf_iface_flush(hncp_pa_p, iface->ifname); //Stop HNCP_PA UPDATE

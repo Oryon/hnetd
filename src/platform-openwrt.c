@@ -27,7 +27,11 @@
 #include "iface.h"
 #include "hncp_dump.h"
 #include "hncp.h"
+<<<<<<< Updated upstream
 #include <uci.h>
+=======
+#include "hncp_slicing.h"
+>>>>>>> Stashed changes
 
 static struct ubus_context *ubus = NULL;
 static struct ubus_subscriber netifd;
@@ -1152,6 +1156,13 @@ static void platform_update(void *data, size_t len)
 		            && sscanf(blobmsg_get_string(dtb[DATA_ATTR_IP4_PLEN]), "%u", &ip4_plen) == 1
 		            && ip4_plen <= 32) {
 			hncp_pa_conf_set_ip4_plen(hncp_pa_p, c->ifname, ip4_plen + 96);
+		}
+
+		uint32_t slice;
+		if(dtb[DATA_ATTR_SLICE] && (slice = blobmsg_get_u32(dtb[DATA_ATTR_SLICE]))) {
+			hncp_slicing_set_slice(p_dncp, c->ifname, slice);
+		} else {
+			hncp_slicing_set_slice(p_dncp, c->ifname, 0);
 		}
 
 		hncp_pa_conf_iface_flush(hncp_pa_p, c->ifname); //Stop HNCP_PA UPDATE
