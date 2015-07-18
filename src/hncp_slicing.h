@@ -7,16 +7,13 @@
 
 #include "hncp.h"
 
-struct hncp_slice_membership_data;
-typedef struct hncp_slice_membership_data hncp_slice_membership_data_s;
-typedef struct hncp_slice_membership_data *hncp_slice_membership_data_p;
 
 #define HNCP_T_SLICE_MEMBERSHIP 	200
 
-struct __packed hncp_slice_membership_tlv {
+typedef struct __packed hncp_slice_membership_tlv {
 	uint32_t endpoint_id;
 	uint32_t slice_id;
-};
+}hncp_slice_membership_data_s,*hncp_slice_membership_data_p;
 
 int hncp_slicing_init(hncp hncp, const char *scriptpath);
 
