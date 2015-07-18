@@ -1310,7 +1310,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	struct uci_package* pkg;
 	struct uci_section* s;
 	struct uci_ptr ptr;
-	char[PREFIX_MAXBUFFLEN] addr;
+	char addr[PREFIX_MAXBUFFLEN];
 	char* zone;
 
 	uci_load(ctx, "firewall", &pkg);

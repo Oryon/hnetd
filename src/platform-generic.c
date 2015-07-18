@@ -932,4 +932,24 @@ static void ipc_handle(struct uloop_fd *fd, __unused unsigned int events)
 	}
 }
 
-void update_slicing_config(__unused char* iface, __unused bool internet, __unused int nb_inet_prefixes,__unused struct prefix* inet_prefixes,__unused int nb_accessible_prefixes,__unused struct prefix* accessible_prefixes){}
+void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes, struct prefix* inet_prefixes, int nb_accessible_prefixes, struct prefix* accessible_prefixes){
+	char addr[PREFIX_MAXBUFFLEN];
+
+	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
+		printf("ip6tables -A FORWARD -i %s -d %s -j ACCEPT", iface, addr);
+	}
+
+	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(inet_prefixes[i].prefix), inet_prefixes[i].plen);
+		printf("ip6tables -A FORWARD -i %s -d %s -j REJECT", iface, addr);
+	}
+
+	if (internet){
+		printf("ip6tables -A FORWARD -i %s -d \"::/0\" -j ACCEPT", iface);
+	}
+	else {
+		printf("ip6tables -A FORWARD -i %s -d \"::/0\" -j REJECT", iface);
+	}
+
+}
