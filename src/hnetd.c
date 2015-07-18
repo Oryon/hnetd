@@ -30,6 +30,7 @@
 #include "platform.h"
 #include "pd.h"
 #include "dncp_trust.h"
+#include "hncp_wifi.h"
 
 #ifdef DTLS
 #include "dtls.h"
@@ -93,7 +94,8 @@ int usage() {
 	 "\t--verify-path <(DTLS) path to trusted cert file>\n"
 	 "\t--verify-dir <(DTLS) path to trusted cert directory>\n"
 	 "\t-M multicast_script (enables draft-pfister-homenet-multicast support)\n"
-	 );
+	 "\t-w wifi_script (enables ssid autoconfiguration)\n"
+  );
     return(3);
 }
 
@@ -154,6 +156,7 @@ int main(__unused int argc, char *argv[])
 	const char *dtls_path = NULL;
 	const char *dtls_dir = NULL;
 	const char *pidfile = NULL;
+	const char *wifiscript = NULL;
 	bool strict = false;
 
 	enum {
@@ -210,6 +213,9 @@ int main(__unused int argc, char *argv[])
 			break;
 		case 'M':
 			multicast_params.multicast_script = optarg;
+			break;
+		case 'w':
+			wifiscript = optarg;
 			break;
 		case 'S':
 			strict = true;
@@ -333,6 +339,15 @@ int main(__unused int argc, char *argv[])
 					return 123;
 			}
 	}
+
+	if(wifiscript) {
+		hncp_wifi w = hncp_wifi_init(h, wifiscript);
+		if(!w) {
+			L_ERR("unable to initialize auto-wifi, exiting");
+			return 124;
+		}
+	}
+
 	if (routing_script)
 		hncp_routing_create(h, routing_script, !strict);
 
