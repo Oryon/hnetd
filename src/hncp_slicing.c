@@ -149,7 +149,7 @@ static void delayed_add_rules(struct uloop_timeout *t) {
 	free(mt);
 }
 
-static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
+static int do_add_rules(dncp dncp_inst, uint32_t ep_id, __unused struct tlv_attr *tlv) {
 //First we get the slice number corresponding to this ep_id
 	uint32_t slice_id = 0;
 	L_ERR("Begin do_add_rules with endpoint %d",ep_id);
@@ -161,7 +161,11 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 		L_ERR("end of do_add_rules");
 		return -1;
 	}
-	slice_id = ntohl(((hncp_slice_membership_data_p) tlv_data(tlv))->slice_id);
+	struct tlv_attr * myAttr = NULL;
+	dncp_node_for_each_tlv_with_type(dncp_get_own_node(dncp_inst),myAttr,HNCP_T_SLICE_MEMBERSHIP)
+	if(((hncp_slice_membership_data_p)tlv_data(myAttr))->endpoint_id==ep_id){
+		slice_id=ntohl(((hncp_slice_membership_data_p)tlv_data(myAttr))->slice_id);
+	}
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
 		L_ERR("Null slice, flush everything");
