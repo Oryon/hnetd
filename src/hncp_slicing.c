@@ -4,7 +4,7 @@
 
 #include "hncp_slicing.h"
 
-bool slicing_enabled = false;
+int slicing_enabled = 0;
 
 
 static int do_add_rules(dncp d, uint32_t ep_id, struct tlv_attr *tlv);
@@ -171,7 +171,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, __unused struct tlv_attr
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
 		L_ERR("Null slice, flush everything");
-		//flush_slicing_config(dep->ifname);
+		if (slicing_enabled > 1) flush_slicing_config(dep->ifname);
 		L_ERR("end of do_add_rules");
 		return 0;
 	}

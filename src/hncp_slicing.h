@@ -13,7 +13,7 @@
 #include "platform.h"
 #define HNCP_T_SLICE_MEMBERSHIP 	200
 
-extern bool slicing_enabled;
+extern int slicing_enabled;
 
 typedef struct __packed hncp_slice_membership_tlv {
 	uint32_t endpoint_id;
