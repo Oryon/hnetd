@@ -221,6 +221,12 @@ void ucix_del(struct uci_context *ctx, const char *p, const char *s, const char 
 		uci_delete(ctx, &uci_ptr);
 }
 
+void ucix_del_section(struct uci_context *ctx, const char *p, const char *s, const char *t)
+{
+	if(!ucix_get_ptr(ctx, p, s, NULL, t))
+		uci_delete(ctx, &uci_ptr);
+}
+
 void ucix_revert(struct uci_context *ctx, const char *p, const char *s, const char *o)
 {
 	if(!ucix_get_ptr(ctx, p, s, o, NULL))

@@ -61,6 +61,8 @@ void ucix_revert(struct uci_context *ctx,
 	const char *p, const char *s, const char *o);
 void ucix_del(struct uci_context *ctx, const char *p,
 	const char *s, const char *o);
+void ucix_del_section(struct uci_context *ctx, const char *p,
+	const char *s, const char *t);
 void ucix_add_list(struct uci_context *ctx, const char *p,
 	const char *s, const char *o, struct list_head *vals);
 void ucix_add_list_single(struct uci_context *ctx, const char *p,

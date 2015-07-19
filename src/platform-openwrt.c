@@ -1556,17 +1556,13 @@ void flush_slicing_config(char* iface){
 
 	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
 
-	s = uci_lookup_section(ctx, pkg, zone);
-
-	while(s != NULL){
-		ptr.s = s;
-		uci_delete(ctx, &ptr);
-		s = uci_lookup_section(ctx, pkg, zone);
+	while(!ucix_get_ptr(ctx, "firewall", "rule", NULL, iface)){
+		ucix_del_sectionctx, "firewall", "rule", iface();
 	}
 
-	uci_commit(ctx, &pkg, true);
+	ucix_commit(ctx, "firewall");
 
-	uci_free_context(ctx);
+	ucix_cleanup(ctx);
 
 	char *argv[] = {"/sbin/reload_config", NULL};
 	pid_t pid = hncp_run(argv);
