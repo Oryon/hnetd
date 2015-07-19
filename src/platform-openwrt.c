@@ -1447,7 +1447,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	uci_free_context(ctx);
 
-	char *argv[] = {"reload_config", NULL};
+	char *argv[] = {"/sbin/reload_config", NULL};
 	pid_t pid = hncp_run(argv);
 	int status;
 	waitpid(pid, &status, 0);
@@ -1486,7 +1486,7 @@ void flush_slicing_config(char* iface){
 
 	uci_free_context(ctx);
 
-	char *argv[] = {"reload_config", NULL};
+	char *argv[] = {"/sbin/reload_config", NULL};
 	pid_t pid = hncp_run(argv);
 	int status;
 	waitpid(pid, &status, 0);
