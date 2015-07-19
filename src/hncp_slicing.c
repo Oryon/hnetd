@@ -46,7 +46,7 @@ int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
 	struct tlv_attr *a;
 	dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 		hncp_slice_membership_data_p tlv = tlv_data(a);
-		if (ntohl(tlv->endpoint_id) == endpoint_id) {
+		if (tlv->endpoint_id == endpoint_id) {
 			L_ERR("Existing TLV found for this interface, slice %d", ntohl(tlv->slice_id));
 			if (ntohl(tlv->slice_id) != slice) {
 				dncp_tlv dt = dncp_find_tlv(d, HNCP_T_SLICE_MEMBERSHIP, tlv_data(a), sizeof(hncp_slice_membership_data_s));
@@ -59,7 +59,7 @@ int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
 	if (slice != 0 && !nochange) {
 		L_ERR("Adding new TLV");
 		hncp_slice_membership_data_s tlv;
-		tlv.endpoint_id = htonl(endpoint_id);
+		tlv.endpoint_id = endpoint_id;
 		tlv.slice_id = htonl(slice);
 		dncp_add_tlv(d, HNCP_T_SLICE_MEMBERSHIP, &tlv, sizeof(hncp_slice_membership_data_s), 0);
 	}
@@ -85,7 +85,7 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		hncp_slice_membership_data_p data = tlv_data(tlv);
 		if (dncp_node_is_self(n)) {
 			L_ERR("==== My TLV changed");
-			do_add_rules(d, ntohl(data->endpoint_id), tlv);
+			do_add_rules(d, data->endpoint_id, tlv);
 			return;
 		}
 		// We update the rules of all endpoints that are in the slice that changed
@@ -94,7 +94,7 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
 				L_ERR("==== Other TLV changed, with a slice of my interface");
-				do_add_rules(d, ntohl(my_data->endpoint_id), tlv);
+				do_add_rules(d, my_data->endpoint_id, tlv);
 			}
 		}
 	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
@@ -106,9 +106,9 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		struct tlv_attr *a;
 		dncp_node_for_each_tlv_with_type(n, a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p other_data = tlv_data(a);
-			if (htonl(data->ep_id) == other_data->endpoint_id) {
-				L_ERR("==== Found other membership for ep %d, slice %d", ntohl(other_data->endpoint_id), ntohl(other_data->slice_id));
-				slice = other_data->slice_id;
+			if (data->ep_id == other_data->endpoint_id) {
+				L_ERR("==== Found other membership for ep %d, slice %d", other_data->endpoint_id, ntohl(other_data->slice_id));
+				slice = ntohl(other_data->slice_id);
 				break;
 			}
 		}
@@ -116,8 +116,8 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == slice) {
-				L_ERR("==== Found my membership for slice %d ep %d",ntohl(my_data->slice_id), ntohl(my_data->endpoint_id));
-				do_add_rules(d, ntohl(my_data->endpoint_id), a);
+				L_ERR("==== Found my membership for slice %d ep %d",ntohl(my_data->slice_id), my_data->endpoint_id);
+				do_add_rules(d, my_data->endpoint_id, a);
 			}
 		}
 	}
