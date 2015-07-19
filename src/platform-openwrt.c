@@ -30,6 +30,7 @@
 #include "hncp.h"
 #include <uci.h>
 #include "hncp_slicing.h"
+#include "ucix.h"
 
 static struct ubus_context *ubus = NULL;
 static struct ubus_subscriber netifd;
@@ -1346,7 +1347,7 @@ static void handle_dump(__unused struct ubus_request *req,
 	return NULL;
 }
 
-void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
+/*void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
 
 	struct uci_context* ctx = uci_alloc_context();
 	struct uci_package* pkg;
@@ -1356,11 +1357,6 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	char* zone = "lan"; //get_openwrt_zone(iface);
 
 	L_DEBUG("slice : adding config for interface \"%s\"", iface);
-
-	/*if (zone == NULL){
-		L_ERR("ERROR : zone not found");
-		return;
-	}*/
 
 
 	uci_load(ctx, "firewall", &pkg);
@@ -1464,11 +1460,6 @@ void flush_slicing_config(char* iface){
 
 	char* zone = "lan"; //get_openwrt_zone(iface);
 
-	/*if (zone == NULL){
-		L_ERR("ERROR : zone not found");
-		return;
-	}*/
-
 	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
 
 	ptr.p = pkg;
@@ -1494,5 +1485,96 @@ void flush_slicing_config(char* iface){
 
 	L_DEBUG("slice : config for zone \"%s\" flushed", zone);
 }
+*/
+void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,struct prefix* inet_prefixes, int nb_accessible_prefixes,struct prefix* accessible_prefixes){
+
+	struct uci_context* ctx = ucix_init("firewall", 0);
+	char addr[PREFIX_MAXBUFFLEN];
+	char* zone = "lan"; //get_openwrt_zone(iface);
+
+	L_DEBUG("slice : adding config for interface \"%s\"", iface);
+
+	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
+		L_DEBUG("slice : adding acces for interface \"%s\" to prefix %s", iface, addr);
+
+		ucix_add_section(ctx, "firewall", "rule", iface);
+
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
+
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", addr);
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "ACCEPT");
+
+		L_DEBUG("slice : interface \"%s\" is allowed access to prefix %s", iface, addr);
+	}
+
+	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
+		L_DEBUG("slice : removing acces for interface \"%s\" to prefix %s", iface, addr);
+
+		ucix_add_section(ctx, "firewall", "rule", iface);
+
+		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(inet_prefixes[i].prefix), inet_prefixes[i].plen);
+
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", addr);
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "REJECT");
+
+		L_DEBUG("slice : interface \"%s\" is forbidden access to prefix %s", iface, addr);
+}
+	L_DEBUG("slice : adding role for interface \"%s\"'s access to the internet", iface);
+
+	ucix_add_section(ctx, "firewall", "rule", iface); //Allow or forbid access to the internet
+
+	ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
+	ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", "::/0");
+
+	if (internet){
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "ACCEPT");
+		L_DEBUG("slice : interface \"%s\" is allowed access to the internet", iface);
+	}
+	else {
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "REJECT");
+		L_DEBUG("slice : interface \"%s\" is forbidden access to the internet", iface);
+	}
+
+	ucix_commit(ctx, "firewall");
+
+	ucix_cleanup(ctx);
+
+	char *argv[] = {"/sbin/reload_config", NULL};
+	pid_t pid = hncp_run(argv);
+	int status;
+	waitpid(pid, &status, 0);
+
+	L_DEBUG("slice : finished adding config for interface \"%s\" in zone \"%s\"", iface, zone);
+}
+
+void flush_slicing_config(char* iface){
+	struct uci_context* ctx = ucix_init("firewall", 0);
+
+	char* zone = "lan"; //get_openwrt_zone(iface);
+
+	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
+
+	s = uci_lookup_section(ctx, pkg, zone);
+
+	while(s != NULL){
+		ptr.s = s;
+		uci_delete(ctx, &ptr);
+		s = uci_lookup_section(ctx, pkg, zone);
+	}
+
+	uci_commit(ctx, &pkg, true);
+
+	uci_free_context(ctx);
+
+	char *argv[] = {"/sbin/reload_config", NULL};
+	pid_t pid = hncp_run(argv);
+	int status;
+	waitpid(pid, &status, 0);
+
+	L_DEBUG("slice : config for zone \"%s\" flushed", zone);
+}
+
 
 
