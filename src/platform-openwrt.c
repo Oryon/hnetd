@@ -1358,7 +1358,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		for (int j = 0; j < nb_accessible_prefixes; j++){
-			ucix_add_section(ctx, "firewall", "rule", iface);
+			ucix_add_section(ctx, "firewall", iface, "rule");
 
 			prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 			prefix_ntopc(addr2, PREFIX_MAXBUFFLEN, &(accessible_prefixes[j].prefix), accessible_prefixes[j].plen);
@@ -1376,7 +1376,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Forbid access to other slices
 		for (int j = 0; j < nb_inet_prefixes; j++){
-			ucix_add_section(ctx, "firewall", "rule", iface);
+			ucix_add_section(ctx, "firewall", iface, "rule");
 
 			prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 			prefix_ntopc(addr2, PREFIX_MAXBUFFLEN, &(inet_prefixes[j].prefix), inet_prefixes[j].plen);
@@ -1395,7 +1395,7 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){//Allow or forbid access to the internet
 
-		ucix_add_section(ctx, "firewall", "rule", iface);
+		ucix_add_section(ctx, "firewall", iface, "rule");
 		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 
 		ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
@@ -1432,9 +1432,9 @@ void flush_slicing_config(char* iface){
 
 	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
 	int ret;
-	while(ret = (!ucix_get_ptr(ctx, "firewall", "rule", NULL, iface))){
+	while(ret = (!ucix_get_ptr(ctx, "firewall", iface, NULL, "rule"))){
 		L_ERR("Ret %d",ret);
-		ucix_del_section(ctx, "firewall", "rule", iface);
+		ucix_del_section(ctx, "firewall", iface, "rule");
 	}
 
 	ucix_commit(ctx, "firewall");
