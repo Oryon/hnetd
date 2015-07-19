@@ -6,6 +6,16 @@
 
 
 static int do_add_rules(dncp d, uint32_t ep_id, struct tlv_attr *tlv);
+static void call_add_rules_delay(dncp d, uint32_t ep_id, struct tlv_attr *tlv, int delay);
+static void delayed_add_rules(struct uloop_timeout *t);
+
+struct my_timeout {
+	struct uloop_timeout t;
+	uint32_t ep_id;
+	dncp d;
+	struct tlv_attr *tlv;
+};
+
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
 
@@ -94,7 +104,7 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
 				L_ERR("==== Other TLV changed, with a slice of my interface");
-				do_add_rules(d, my_data->endpoint_id, tlv);
+				call_add_rules_delay(d, my_data->endpoint_id, tlv, 200);
 			}
 		}
 	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
@@ -115,14 +125,29 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		//Now find the ep(s) in this slice and update them
 		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
-			if (my_data->slice_id == slice) {
+			if (ntohl(my_data->slice_id) == slice) {
 				L_ERR("==== Found my membership for slice %d ep %d",ntohl(my_data->slice_id), my_data->endpoint_id);
-				do_add_rules(d, my_data->endpoint_id, a);
+				call_add_rules_delay(d, my_data->endpoint_id, a, 200);
 			}
 		}
 	}
 }
 
+static void call_add_rules_delay(dncp d, uint32_t ep_id, struct tlv_attr *tlv, int delay) {
+	struct my_timeout* mt = calloc(sizeof(struct my_timeout), 1);
+	mt->ep_id = ep_id;
+	mt->d = d;
+	mt->tlv = tlv;
+	mt->t.cb = delayed_add_rules;
+	uloop_timeout_add(&(mt->t));
+	uloop_timeout_set(&(mt->t), delay);
+}
+
+static void delayed_add_rules(struct uloop_timeout *t) {
+	struct my_timeout *mt = container_of(t, struct my_timeout, t);
+	do_add_rules(mt->d, mt->ep_id, mt->tlv);
+	free(mt);
+}
 
 static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 //First we get the slice number corresponding to this ep_id
@@ -136,7 +161,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 		L_ERR("end of do_add_rules");
 		return -1;
 	}
-	slice_id = ntohl(((hncp_slice_membership_data_p) tlv->data)->slice_id);
+	slice_id = ntohl(((hncp_slice_membership_data_p) tlv_data(tlv))->slice_id);
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
 		L_ERR("Null slice, flush everything");
@@ -153,7 +178,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 		dncp_node_for_each_tlv_with_type(n,membership_tlv,HNCP_T_SLICE_MEMBERSHIP)
 		{
 			hncp_slice_membership_data_p data =
-					(hncp_slice_membership_data_p) membership_tlv->data;
+					(hncp_slice_membership_data_p) tlv_data(membership_tlv);
 			uint32_t sid = ntohl(data->slice_id);
 			uint32_t ep = data->endpoint_id;
 			if (sid == slice_id) {
@@ -161,7 +186,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 				slice_content_p newEntry = calloc(1, sizeof(slice_content_s));
 
 				//!!!UGLY !!!
-				L_ERR("Node %d ep %d in slice %d",&n->node_id);
+				L_ERR("Node %d ep %d in slice %d",dncp_node_get_id(n), ep, sid);
 
 				newEntry->ep_id = ep;
 				newEntry->node = n;
@@ -174,7 +199,8 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 				dncp_node_for_each_tlv_with_type(n,pa_tlv,HNCP_T_ASSIGNED_PREFIX)
 				{
 					hncp_t_assigned_prefix_header pa_data =
-							(hncp_t_assigned_prefix_header) pa_tlv->data;
+							(hncp_t_assigned_prefix_header) tlv_data(pa_tlv);
+					L_ERR("Found assignment for ep %d", pa_data->ep_id);
 					if (pa_data->ep_id == ep_id) {
 						//Now assign the right prefix
 						L_ERR("Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",pa_data->prefix_data[0],
@@ -231,7 +257,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 					dp_prefixes = realloc(dp_prefixes,
 							(current_num_dp + 1) * sizeof(struct prefix));
 					hncp_t_delegated_prefix_header dp_data =
-							(hncp_t_delegated_prefix_header) attr->data;
+							(hncp_t_delegated_prefix_header) tlv_data(attr);
 					L_ERR("Found DP %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",
 							dp_data->prefix_data[0], dp_data->prefix_data[1],
 							dp_data->prefix_data[2], dp_data->prefix_data[3],
