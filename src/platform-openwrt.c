@@ -1354,12 +1354,13 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	char addr[PREFIX_MAXBUFFLEN];
 	char* zone = get_openwrt_zone(iface);
 
+	L_DEBUG("slice : adding config for interface \"%s\"", iface);
+
 	if (zone == NULL){
 		L_ERR("ERROR : zone not found");
 		return;
 	}
 
-	L_DEBUG("slice : adding config for interface \"%s\" in zone \"%s\"");
 
 	uci_load(ctx, "firewall", &pkg);
 
@@ -1387,6 +1388,8 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 		ptr.option = "target";
 		ptr.value = "ACCEPT";
 		uci_set(ctx, &ptr);
+
+		L_DEBUG("slice : interface \"%s\" is allowed access to prefix %s", iface, addr);
 	}
 
 	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
@@ -1409,7 +1412,9 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 		ptr.option = "target";
 		ptr.value = "REJECT";
 		uci_set(ctx, &ptr);
-	}
+
+		L_DEBUG("slice : interface \"%s\" is forbidden access to prefix %s", iface, addr);
+}
 
 	uci_add_section(ctx, pkg, "rule", &s); //Allow or forbid access to the internet
 
@@ -1428,10 +1433,12 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	if (internet){
 		ptr.option = "target";
 		ptr.value = "ACCEPT";
+		L_DEBUG("slice : interface \"%s\" is allowed access to the internet", iface);
 	}
 	else {
 		ptr.option = "target";
 		ptr.value = "REJECT";
+		L_DEBUG("slice : interface \"%s\" is forbidden access to the internet", iface);
 	}
 
 	uci_set(ctx, &ptr);
@@ -1439,6 +1446,8 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	uci_commit(ctx, &pkg, true);
 
 	uci_free_context(ctx);
+
+	L_DEBUG("slice : finished adding config for interface \"%s\" in zone \"%s\"", iface, zone);
 }
 
 void flush_slicing_config(char* iface){
@@ -1454,7 +1463,7 @@ void flush_slicing_config(char* iface){
 		return;
 	}
 
-	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"");
+	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
 
 	ptr.p = pkg;
 
@@ -1471,6 +1480,8 @@ void flush_slicing_config(char* iface){
 	uci_commit(ctx, &pkg, true);
 
 	uci_free_context(ctx);
+
+	L_DEBUG("slice : config for zone \"%s\" flushed", zone);
 }
 
 
