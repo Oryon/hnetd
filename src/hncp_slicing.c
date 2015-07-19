@@ -121,6 +121,15 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 	dncp_node myNode = dncp_get_own_node(dncp_inst);
 	struct tlv_attr* a = NULL;
 	uint32_t slice_id = 0;
+	L_ERR("Begin do_add_rules with endpoint %d",ep_id);
+	//Now find the name of the interface
+	dncp_ep dep = NULL;
+	dep = dncp_find_ep_by_id(dncp_inst, ep_id);
+	if (dep == NULL){
+		L_ERR("This ep corresponds to nothing. Die !");
+		L_ERR("end of do_add_rules");
+		return -1;
+	}
 	dncp_node_for_each_tlv_with_type(myNode, a, HNCP_T_SLICE_MEMBERSHIP)
 	{
 		hncp_slice_membership_data_p data =
@@ -128,12 +137,16 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 		uint32_t ep = ntohl(data->endpoint_id);
 		if (ep == ep_id) {
 			slice_id = ntohl(data->slice_id);
+			L_DEBUG("Found a slice for this endpoint : slice_id %d",slice_id);
+			break;
 		}
-		break;
+
 	}
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
-		//TODO: flush everything
+		L_ERR("Null slice, flush everything");
+		flush_slicing_config(dep->ifname);
+		L_ERR("end of do_add_rules");
 		return 0;
 	}
 	//Now I have the slice number, let us find all the (node,ep) on this slice
@@ -151,6 +164,10 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 			if (sid == slice_id) {
 				//It is the good slice, add an entry in s_cont
 				slice_content_p newEntry = calloc(1, sizeof(slice_content_s));
+
+				//!!!UGLY !!!
+				L_ERR("Node %d ep %d in slice %d",&n->node_id);
+
 				newEntry->ep_id = ep;
 				newEntry->node = n;
 				slice_content_p* endOfList = &s_cont;
@@ -165,6 +182,23 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 							(hncp_t_assigned_prefix_header) pa_tlv->data;
 					if (ntohl(pa_data->ep_id) == ep_id) {
 						//Now assign the right prefix
+						L_ERR("Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",pa_data->prefix_data[0],
+								pa_data->prefix_data[1],
+								pa_data->prefix_data[2],
+								pa_data->prefix_data[3],
+								pa_data->prefix_data[4],
+								pa_data->prefix_data[5],
+								pa_data->prefix_data[6],
+								pa_data->prefix_data[7],
+								pa_data->prefix_data[8],
+								pa_data->prefix_data[9],
+								pa_data->prefix_data[10],
+								pa_data->prefix_data[11],
+								pa_data->prefix_data[12],
+								pa_data->prefix_data[13],
+								pa_data->prefix_data[14],
+								pa_data->prefix_data[15],
+								pa_data->prefix_length_bits);
 						newEntry->p.plen = pa_data->prefix_length_bits;
 						memcpy(&newEntry->p.prefix, pa_data->prefix_data, 16);
 						//We consider that plen = 0 means no prefix assigned (ignore entry)
@@ -173,11 +207,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 			}
 		}
 	}
-//Now find the name of the interface
-	dncp_ep dep = NULL;
-	dep = dncp_find_ep_by_id(dncp_inst, ep_id);
-	if (dep == NULL)
-		return -1;
+
 //Build the array of accessible prefixes
 	struct prefix* accessibles = NULL;
 	int current_len = 0;
@@ -195,10 +225,28 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 	int current_num_dp = 0;
 	dncp_tlv dp_tlv = NULL;
 	dncp_for_each_tlv(dncp_inst,dp_tlv){
+		L_ERR("Looking for DPs");
 		struct tlv_attr* attr = dncp_tlv_get_attr(dp_tlv);
 		if(tlv_id(attr)==HNCP_T_DELEGATED_PREFIX){
 			dp_prefixes = realloc(dp_prefixes,(current_num_dp+1)*sizeof(struct prefix));
 			hncp_t_delegated_prefix_header dp_data = (hncp_t_delegated_prefix_header)attr->data;
+			L_ERR("Found DP %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",dp_data->prefix_data[0],
+								dp_data->prefix_data[1],
+								dp_data->prefix_data[2],
+								dp_data->prefix_data[3],
+								dp_data->prefix_data[4],
+								dp_data->prefix_data[5],
+								dp_data->prefix_data[6],
+								dp_data->prefix_data[7],
+								dp_data->prefix_data[8],
+								dp_data->prefix_data[9],
+								dp_data->prefix_data[10],
+								dp_data->prefix_data[11],
+								dp_data->prefix_data[12],
+								dp_data->prefix_data[13],
+								dp_data->prefix_data[14],
+								dp_data->prefix_data[15],
+								dp_data->prefix_length_bits);
 			memcpy(&dp_prefixes[current_num_dp].prefix,dp_data->prefix_data,16);
 			dp_prefixes[current_num_dp].plen = dp_data->prefix_length_bits;
 			current_num_dp++;
