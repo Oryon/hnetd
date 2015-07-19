@@ -25,6 +25,11 @@ s = m:section(NamedSection, "sd", "sd", translate("Service Discovery"))
 s:option(Value, "router_name", translate("Router Name"))
 s:option(Value, "domain_name", translate("Domain Name"))
 
+s = m:section(NamedSection, "wifi", "wifi", translate("Auto-Wifi"))
+s:option(Value, "ssid", translate("SSID"))
+s:option(Value, "password", translate("Password"))
+s:option(Value, "slice", translate("Slice"))
+
 m.on_after_commit = function() luci.sys.call("/etc/init.d/hnetd reload") end
 
 return m
