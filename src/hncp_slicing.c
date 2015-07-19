@@ -169,7 +169,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, __unused struct tlv_attr
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
 		L_ERR("Null slice, flush everything");
-		flush_slicing_config(dep->ifname);
+		//flush_slicing_config(dep->ifname);
 		L_ERR("end of do_add_rules");
 		return 0;
 	}
