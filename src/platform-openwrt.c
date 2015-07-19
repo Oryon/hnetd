@@ -1352,14 +1352,14 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 	struct uci_section* s;
 	struct uci_ptr ptr;
 	char addr[PREFIX_MAXBUFFLEN];
-	char* zone = get_openwrt_zone(iface);
+	char* zone = "lan"; //get_openwrt_zone(iface);
 
 	L_DEBUG("slice : adding config for interface \"%s\"", iface);
 
-	if (zone == NULL){
+	/*if (zone == NULL){
 		L_ERR("ERROR : zone not found");
 		return;
-	}
+	}*/
 
 
 	uci_load(ctx, "firewall", &pkg);
@@ -1456,12 +1456,12 @@ void flush_slicing_config(char* iface){
 	struct uci_section* s;
 	struct uci_ptr ptr;
 
-	char* zone = get_openwrt_zone(iface);
+	char* zone = "lan"; //get_openwrt_zone(iface);
 
-	if (zone == NULL){
+	/*if (zone == NULL){
 		L_ERR("ERROR : zone not found");
 		return;
-	}
+	}*/
 
 	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
 
