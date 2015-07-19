@@ -1490,52 +1490,67 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	struct uci_context* ctx = ucix_init("firewall", 0);
 	char addr[PREFIX_MAXBUFFLEN];
+	char addr2[PREFIX_MAXBUFFLEN];
 	char* zone = "lan"; //get_openwrt_zone(iface);
 
 	L_DEBUG("slice : adding config for interface \"%s\"", iface);
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
-		L_DEBUG("slice : adding acces for interface \"%s\" to prefix %s", iface, addr);
+		for (int j = 0; j < nb_accessible_prefixes; j++){
+			L_DEBUG("slice : adding acces for interface \"%s\" to prefix %s", iface, addr);
+
+			ucix_add_section(ctx, "firewall", "rule", iface);
+
+			prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
+			prefix_ntopc(addr2, PREFIX_MAXBUFFLEN, &(accessible_prefixes[j].prefix), accessible_prefixes[j].plen);
+
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "src_ip", addr);
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", addr2);
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "ACCEPT");
+
+			L_DEBUG("slice : interface \"%s\" is allowed access to prefix %s", iface, addr);
+		}
+	}
+
+	for (int i = 0; i < nb_accessible_prefixes; i++){ //Forbid access to other slices
+		for (int j = 0; j < nb_inet_prefixes; j++){
+			L_DEBUG("slice : removing acces for interface \"%s\" to prefix %s", iface, addr);
+
+			ucix_add_section(ctx, "firewall", "rule", iface);
+
+			prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
+			prefix_ntopc(addr2, PREFIX_MAXBUFFLEN, &(inet_prefixes[j].prefix), inet_prefixes[j].plen);
+
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "src_ip", addr);
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", addr2);
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "REJECT");
+
+			L_DEBUG("slice : interface \"%s\" is forbidden access to prefix %s", iface, addr);
+		}
+	}
+	L_DEBUG("slice : adding role for interface \"%s\"'s access to the internet", iface);
+
+	for (int i = 0; i < nb_accessible_prefixes; i++){//Allow or forbid access to the internet
 
 		ucix_add_section(ctx, "firewall", "rule", iface);
-
 		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 
 		ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", addr);
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "ACCEPT");
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "src_ip", addr);
+		ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", "::/0");
 
-		L_DEBUG("slice : interface \"%s\" is allowed access to prefix %s", iface, addr);
+		if (internet){
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "ACCEPT");
+			L_DEBUG("slice : interface \"%s\" is allowed access to the internet", iface);
+		}
+		else {
+			ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "REJECT");
+			L_DEBUG("slice : interface \"%s\" is forbidden access to the internet", iface);
+		}
 	}
-
-	for (int i = 0; i < nb_inet_prefixes; i++){ //Forbid access to other slices
-		L_DEBUG("slice : removing acces for interface \"%s\" to prefix %s", iface, addr);
-
-		ucix_add_section(ctx, "firewall", "rule", iface);
-
-		prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(inet_prefixes[i].prefix), inet_prefixes[i].plen);
-
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", addr);
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "REJECT");
-
-		L_DEBUG("slice : interface \"%s\" is forbidden access to prefix %s", iface, addr);
-}
-	L_DEBUG("slice : adding role for interface \"%s\"'s access to the internet", iface);
-
-	ucix_add_section(ctx, "firewall", "rule", iface); //Allow or forbid access to the internet
-
-	ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
-	ucix_add_option(ctx, "firewall", "@rule[-1]", "dst_ip", "::/0");
-
-	if (internet){
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "ACCEPT");
-		L_DEBUG("slice : interface \"%s\" is allowed access to the internet", iface);
-	}
-	else {
-		ucix_add_option(ctx, "firewall", "@rule[-1]", "target", "REJECT");
-		L_DEBUG("slice : interface \"%s\" is forbidden access to the internet", iface);
-	}
+	L_DEBUG("slice : commiting and reloading config");
 
 	ucix_commit(ctx, "firewall");
 
