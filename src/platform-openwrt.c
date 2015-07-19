@@ -1358,12 +1358,12 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Allow access to other addresses in the same slice
 		for (int j = 0; j < nb_accessible_prefixes; j++){
-			L_DEBUG("slice : adding acces for interface \"%s\" to prefix %s", iface, addr);
-
 			ucix_add_section(ctx, "firewall", "rule", iface);
 
 			prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 			prefix_ntopc(addr2, PREFIX_MAXBUFFLEN, &(accessible_prefixes[j].prefix), accessible_prefixes[j].plen);
+
+			L_DEBUG("slice : adding acces for interface \"%s\" to prefix %s", iface, addr);
 
 			ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
 			ucix_add_option(ctx, "firewall", "@rule[-1]", "src_ip", addr);
@@ -1376,12 +1376,12 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	for (int i = 0; i < nb_accessible_prefixes; i++){ //Forbid access to other slices
 		for (int j = 0; j < nb_inet_prefixes; j++){
-			L_DEBUG("slice : removing acces for interface \"%s\" to prefix %s", iface, addr);
-
 			ucix_add_section(ctx, "firewall", "rule", iface);
 
 			prefix_ntopc(addr, PREFIX_MAXBUFFLEN, &(accessible_prefixes[i].prefix), accessible_prefixes[i].plen);
 			prefix_ntopc(addr2, PREFIX_MAXBUFFLEN, &(inet_prefixes[j].prefix), inet_prefixes[j].plen);
+
+			L_DEBUG("slice : removing acces for interface \"%s\" to prefix %s", iface, addr);
 
 			ucix_add_option(ctx, "firewall", "@rule[-1]", "src", zone);
 			ucix_add_option(ctx, "firewall", "@rule[-1]", "src_ip", addr);
