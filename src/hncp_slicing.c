@@ -127,7 +127,7 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (ntohl(my_data->slice_id) == slice) {
 				L_ERR("==== Found my membership for slice %d ep %d",ntohl(my_data->slice_id), my_data->endpoint_id);
-				call_add_rules_delay(d, my_data->endpoint_id, a, 200);
+				call_add_rules_delay(d, my_data->endpoint_id, a, 1000);
 			}
 		}
 	}
