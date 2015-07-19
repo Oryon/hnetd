@@ -16,6 +16,7 @@
 
 #include <sys/un.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 
 #include <libubox/blobmsg.h>
 #include <libubox/blobmsg_json.h>
