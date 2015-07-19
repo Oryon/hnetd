@@ -1447,6 +1447,11 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 
 	uci_free_context(ctx);
 
+	char *argv[] = {"reload_config", NULL};
+	pid_t pid = hncp_run(argv);
+	int status;
+	waitpid(pid, &status, 0);
+
 	L_DEBUG("slice : finished adding config for interface \"%s\" in zone \"%s\"", iface, zone);
 }
 
@@ -1480,6 +1485,11 @@ void flush_slicing_config(char* iface){
 	uci_commit(ctx, &pkg, true);
 
 	uci_free_context(ctx);
+
+	char *argv[] = {"reload_config", NULL};
+	pid_t pid = hncp_run(argv);
+	int status;
+	waitpid(pid, &status, 0);
 
 	L_DEBUG("slice : config for zone \"%s\" flushed", zone);
 }
