@@ -1305,7 +1305,7 @@ static void handle_dump(__unused struct ubus_request *req,
 }
 
 
-static char *get_openwrt_zone(char *ifname) {
+ static char * get_openwrt_zone(char *ifname) __unused {
 	struct uci_context* ctx = uci_alloc_context();
 	struct uci_package* pkg;
 	struct uci_element *e;
