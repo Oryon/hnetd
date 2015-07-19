@@ -31,7 +31,8 @@ var hnet = (function() {
 				UPLINK : "violet",
 				CONNEXION_UNIDIR : "#009966",
 				CONNEXION_BIDIR : "#003333",
-				BROWSER : "green"
+				BROWSER : "green",
+				SLICES : ["#FFFFFF", "#8A2BE2", "#A52A2A", "#DEB887"]
 			},
 		home : {
 			ROUTER : "#7BCB00",
@@ -45,6 +46,7 @@ var hnet = (function() {
 			CONNEXION_UNIDIR : "#89D414",
 			CONNEXION_BIDIR : "#7BCB00",
 			BROWSER : "#7BCBA0",
+			SLICES : ["#FFFFFF", "#8A2BE2", "#A52A2A", "#DEB887"]
 		},
 	}
 
@@ -394,6 +396,14 @@ var hnet = (function() {
 		if(!(this.router.id in hncp.nodes)) {
 			this.node.color = this.monitor.conf.colors.UNKNOWN_IFACE;
 			return;
+		}
+
+		var slice_id = 0;
+		var hncp_p = hncp.nodes[this.router.id]["slices"];
+		hncp_p.forEach(function(p) {if(p.link == me.id) slice_id = p["slice"];});
+		if(slice_id != 0) {
+			this.node.radius = this.monitor.conf.sizes.IFACE_RADIUS;
+			this.node.color = this.monitor.conf.colors.SLICES[slice_id];
 		}
 		
 		var prefix_present = false;

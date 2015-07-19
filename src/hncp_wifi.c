@@ -55,6 +55,7 @@ static void wifi_ssid_notify(hncp_wifi wifi,
 {
 	hncp_t_wifi_ssid tlv_data = (hncp_t_wifi_ssid) tlv->data;
 	hncp_ssid ssid = wifi_find_ssid(wifi, tlv_data->ssid, tlv_data->password, ntohl(tlv_data->slice));
+	L_ERR("wifi_ssid_notify ");
 	if(add && !ssid) {
 		ssid = wifi_find_free_ssid(wifi);
 		if(!ssid) {

@@ -58,7 +58,7 @@ if (${EXTRA_LINK_DIR})
 endif (${EXTRA_LINK_DIR})
 
 if(${BACKEND} MATCHES "openwrt")
-  set(BACKEND_SOURCE "src/platform-openwrt.c")
+  set(BACKEND_SOURCE "src/platform-openwrt.c" src/ucix.c)
   set(BACKEND_LINK "ubus" "uci")
 else(${BACKEND} MATCHES "openwrt")
   set(BACKEND_SOURCE "src/platform-generic.c")

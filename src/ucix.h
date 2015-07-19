@@ -22,7 +22,7 @@
 #ifndef _UCI_H__
 #define _UCI_H__
 #include <uci.h>
-#include "list.h"
+#include <libubox/list.h>
 
 struct ucilist {
 	struct list_head list;

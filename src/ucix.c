@@ -63,7 +63,8 @@ struct uci_context* ucix_init_path(const char *vpath, const char *config_file, i
 	snprintf(buf, 255, "%s%s", vpath, "/etc/config");
 	uci_set_confdir(ctx, buf);
 	snprintf(buf, 255, "%s%s", vpath, (state)?("/var/state"):("/tmp/.uci"));
-	uci_add_history_path(ctx, buf);
+	//FIXME/ UNREFERENCED
+	//uci_add_history_path(ctx, buf);
 	if(uci_load(ctx, config_file, NULL) != UCI_OK)
 	{
 		printf("%s/%s is missing or corrupt\n", ctx->confdir, config_file);

@@ -1306,7 +1306,7 @@ static void handle_dump(__unused struct ubus_request *req,
 }
 
 
- static char * get_openwrt_zone(char *ifname) __unused {
+ static char * get_openwrt_zone(char *ifname) {
 	struct uci_context* ctx = uci_alloc_context();
 	struct uci_package* pkg;
 	struct uci_element *e;
@@ -1557,7 +1557,7 @@ void flush_slicing_config(char* iface){
 	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
 
 	while(!ucix_get_ptr(ctx, "firewall", "rule", NULL, iface)){
-		ucix_del_sectionctx, "firewall", "rule", iface();
+		ucix_del_section(ctx, "firewall", "rule", iface);
 	}
 
 	ucix_commit(ctx, "firewall");
