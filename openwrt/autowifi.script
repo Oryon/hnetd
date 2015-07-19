@@ -1,4 +1,21 @@
 #!/bin/sh
 
-echo "Auto-Wifi Script"
-echo $@
+echo "Auto-Wifi Script: $@" >> /tmp/autowifi.log
+
+wlan="wlan$2"
+ssid="$3"
+password="$4"
+
+if [ "$1" = "addssid" ]; then
+uci -q batch <<-EOT
+	set wireless.@wifi-device[$2].disabled=0
+	set wireless.@wifi-device[$2].ssid=$ssid
+	set wireless.@wifi-device[$2].encryption='psk2'
+	set wireless.@wifi-device[$2].key='$password'
+	uci commit wireless
+EOT
+elif [ "$1" = "delssid" ]; then
+	set wireless.@wifi-device[$2].disabled=1
+	uci commit wireless
+fi
+

@@ -12,7 +12,7 @@
 
 typedef struct hncp_wifi_struct hncp_wifi_s, *hncp_wifi;
 
-hncp_wifi hncp_wifi_init(hncp hncp, const char *scriptpath);
+hncp_wifi hncp_wifi_init(hncp hncp, char *scriptpath);
 
 int hncp_wifi_modssid(hncp_wifi wifi, uint32_t slice,
 		const char *ssid, const char *password, bool del);

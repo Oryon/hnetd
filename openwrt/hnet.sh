@@ -22,14 +22,15 @@ proto_hnet_init_config() {
     proto_config_add_int 'keepalive_interval'
     proto_config_add_int 'trickle_k'
     proto_config_add_boolean 'ip4uplinklimit'
+    proto_config_add_int 'slice'
 }
 
 proto_hnet_setup() {
     local interface="$1"
     local device="$2"
 
-    local dhcpv4_clientid dhcpv6_clientid reqaddress reqprefix prefix link_id iface_id ip6assign ip4assign disable_pa ula_default_router keepalive_interval trickle_k dnsname mode ip4uplinklimit
-    json_get_vars dhcpv4_clientid dhcpv6_clientid reqaddress reqprefix prefix link_id iface_id ip6assign ip4assign disable_pa ula_default_router keepalive_interval trickle_k dnsname mode ip4uplinklimit
+    local dhcpv4_clientid dhcpv6_clientid reqaddress reqprefix prefix link_id iface_id ip6assign ip4assign disable_pa ula_default_router keepalive_interval trickle_k dnsname mode ip4uplinklimit slice
+    json_get_vars dhcpv4_clientid dhcpv6_clientid reqaddress reqprefix prefix link_id iface_id ip6assign ip4assign disable_pa ula_default_router keepalive_interval trickle_k dnsname mode ip4uplinklimit slice
 
     logger -t proto-hnet "proto_hnet_setup $device/$interface"
 
@@ -57,6 +58,7 @@ proto_hnet_setup() {
     [ -n "$reqprefix" ] && json_add_string reqprefix "$reqprefix"
     [ -n "$dhcpv6_clientid" ] && json_add_string dhcpv6_clientid "$dhcpv6_clientid"
     [ "$ip4uplinklimit" = 1 ] && json_add_boolean ip4uplinklimit 1
+    [ -n "$slice" ] && json_add_int slice $slice
 
     json_add_string dnsname "${dnsname:-$interface}"
     json_add_array prefix

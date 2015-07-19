@@ -26,7 +26,7 @@ typedef struct hncp_ssid_struct {
 } hncp_ssid_s, *hncp_ssid;
 
 struct hncp_wifi_struct {
-	const char *script;
+	char *script;
 	dncp dncp;
 	dncp_subscriber_s subscriber;
 	hncp_ssid_s ssids[HNCP_SSIDS];
@@ -57,8 +57,8 @@ static hncp_ssid wifi_find_free_ssid(hncp_wifi wifi)
 	return NULL;
 }
 
-static void wifi_ssid_notify(__unused hncp_wifi wifi,
-		__unused dncp_node n, __unused struct tlv_attr *tlv, __unused bool add)
+static void wifi_ssid_notify(hncp_wifi wifi,
+		__unused dncp_node n, struct tlv_attr *tlv, bool add)
 {
 	hncp_t_wifi_ssid tlv_data = (hncp_t_wifi_ssid) tlv->data;
 	hncp_ssid ssid = wifi_find_ssid(wifi, tlv_data->ssid, tlv_data->password, ntohl(tlv_data->slice));
@@ -77,16 +77,18 @@ static void wifi_ssid_notify(__unused hncp_wifi wifi,
 		sprintf(sl, "%d", (int)ssid->slice);
 		char *argv[] = {wifi->script, "addssid", id, ssid->ssid, ssid->password, sl, NULL};
 		pid_t pid = hncp_run(argv);
-		int res = waitpid(pid, NULL, 0);
-		L_INFO("Auto-Wifi script returned %d", res);
+		int status;
+		waitpid(pid, &status, 0);
+		L_INFO("Auto-Wifi script (pid %d) returned %d", pid, status);
 	} else if(!add && ssid) {
 		char id[10], sl[10];
 		sprintf(id, "%d", (int)ssid->id);
 		sprintf(sl, "%d", (int)ssid->slice);
 		char *argv[] = {wifi->script, "delssid", id, ssid->ssid, ssid->password, sl, NULL};
 		pid_t pid = hncp_run(argv);
-		int res = waitpid(pid, NULL, 0);
-		L_INFO("Auto-Wifi script returned %d", res);
+		int status;
+		waitpid(pid, &status, 0);
+		L_INFO("Auto-Wifi script (pid %d) returned %d", pid, status);
 
 		ssid->ssid[0] = 0;
 		ssid->ssid[1] = 1;
@@ -126,7 +128,7 @@ static void wifi_tlv_cb(dncp_subscriber s,
 		wifi_ssid_notify(wifi, n, tlv, add);
 }
 
-hncp_wifi hncp_wifi_init(hncp hncp, const char *scriptpath)
+hncp_wifi hncp_wifi_init(hncp hncp, char *scriptpath)
 {
 	hncp_wifi wifi;
 	if(!(wifi = calloc(1, sizeof(*wifi))))
