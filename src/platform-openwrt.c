@@ -1570,8 +1570,9 @@ void flush_slicing_config(char* iface){
 	char* zone = "lan"; //get_openwrt_zone(iface);
 
 	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"", iface, zone);
-
-	while(!ucix_get_ptr(ctx, "firewall", "rule", NULL, iface)){
+	int ret;
+	while(ret = (!ucix_get_ptr(ctx, "firewall", "rule", NULL, iface))){
+		L_ERR("Ret %d",ret);
 		ucix_del_section(ctx, "firewall", "rule", iface);
 	}
 
