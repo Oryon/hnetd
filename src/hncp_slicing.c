@@ -4,6 +4,8 @@
 
 #include "hncp_slicing.h"
 
+bool slicing_enabled = false;
+
 
 static int do_add_rules(dncp d, uint32_t ep_id, struct tlv_attr *tlv);
 static void call_add_rules_delay(dncp d, uint32_t ep_id, struct tlv_attr *tlv, int delay);
@@ -95,7 +97,7 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		hncp_slice_membership_data_p data = tlv_data(tlv);
 		if (dncp_node_is_self(n)) {
 			L_ERR("==== My TLV changed");
-			do_add_rules(d, data->endpoint_id, tlv);
+			if (slicing_enabled) call_add_rules_delay(d, data->endpoint_id, tlv, 200);
 			return;
 		}
 		// We update the rules of all endpoints that are in the slice that changed
@@ -104,7 +106,7 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
 				L_ERR("==== Other TLV changed, with a slice of my interface");
-				call_add_rules_delay(d, my_data->endpoint_id, tlv, 200);
+				if (slicing_enabled) call_add_rules_delay(d, my_data->endpoint_id, tlv, 200);
 			}
 		}
 	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
