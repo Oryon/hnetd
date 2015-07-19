@@ -253,6 +253,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 		}
 	}
 	update_slicing_config(dep->ifname,true,current_num_dp,dp_prefixes,current_len,accessibles);
+	L_ERR("end of do_add_rules");
 	free(dp_prefixes);
 	free(accessibles);
 return 0;
