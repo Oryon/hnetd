@@ -3,7 +3,7 @@
  */
 
 #include "hncp_slicing.h"
-static int do_add_rules(dncp d, uint32_t ep_id);
+static int do_add_rules(dncp d, uint32_t ep_id, struct tlv_attr *tlv);
 struct slice_content;
 typedef struct slice_content slice_content_s, *slice_content_p;
 
@@ -23,7 +23,7 @@ static slice_subscriber_s subscriber = {0};
 
 int hncp_slicing_init(dncp dncp, const char __unused *scriptpath)
 {
-	L_ERR("Init called");
+	L_DEBUG("Init called");
 	subscriber.dncp_subscriber.tlv_change_cb = &slicing_tlv_changed_callback;
 	subscriber.d = dncp;
 	dncp_subscribe(dncp, &subscriber.dncp_subscriber);
@@ -37,7 +37,7 @@ int hncp_slicing_init(dncp dncp, const char __unused *scriptpath)
  */
 int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
 {
-	L_ERR("Set slice");
+	L_DEBUG("Set slice %d to if %s", slice, ifname);
 	uint32_t endpoint_id = dncp_ep_get_id(dncp_find_ep_by_name(d, ifname));
 	bool nochange = false;
 	//Find our TLV if it exists, and always remove it first
@@ -45,14 +45,17 @@ int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
 	dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 		hncp_slice_membership_data_p tlv = tlv_data(a);
 		if (ntohl(tlv->endpoint_id) == endpoint_id) {
+			L_DEBUG("Existing TLV found for this interface, slice %d", ntohl(tlv->slice_id));
 			if (ntohl(tlv->slice_id) != slice) {
-				dncp_remove_tlv(d, container_of(a, dncp_tlv_s, tlv));
+				dncp_tlv dt = dncp_find_tlv(d, HNCP_T_SLICE_MEMBERSHIP, tlv_data(a), sizeof(hncp_slice_membership_data_s));
+				dncp_remove_tlv(d, dt);
 			} else {
 				nochange = true;
 			}
 		}
 	}
 	if (slice != 0 && !nochange) {
+		L_DEBUG("Adding new TLV");
 		hncp_slice_membership_data_s tlv;
 		tlv.endpoint_id = htonl(endpoint_id);
 		tlv.slice_id = htonl(slice);
@@ -72,15 +75,15 @@ int hncp_slicing_set_slice(dncp d, char *ifname, uint32_t slice)
  * is stable for each endpoint
  */
 void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struct tlv_attr *tlv, bool __unused add) {
-	L_ERR("Callback called back");
+	L_DEBUG("Callback called back");
 	dncp d = subscriber.d;  //TODO something better, eg. save our slice_subscriber in hncp ext data
 	if (tlv_id(tlv) == HNCP_T_SLICE_MEMBERSHIP) {
-		L_ERR("=== Membership TLV changed");
+		L_DEBUG("=== Membership TLV changed");
 		// We always have to update something if one of our TLVs changes
 		hncp_slice_membership_data_p data = tlv_data(tlv);
 		if (dncp_node_is_self(n)) {
-			L_ERR("==== My TLV changed");
-			do_add_rules(d, ntohl(data->endpoint_id));
+			L_DEBUG("==== My TLV changed");
+			do_add_rules(d, ntohl(data->endpoint_id), tlv);
 			return;
 		}
 		// We update the rules of all endpoints that are in the slice that changed
@@ -88,12 +91,12 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == data->slice_id) {
-				L_ERR("==== Other TLV changed, with a slice of my interface");
-				do_add_rules(d, ntohl(my_data->endpoint_id));
+				L_DEBUG("==== Other TLV changed, with a slice of my interface");
+				do_add_rules(d, ntohl(my_data->endpoint_id), tlv);
 			}
 		}
 	} else if (tlv_id(tlv) == HNCP_T_ASSIGNED_PREFIX) {
-		L_ERR("=== Assigned TLV changed");
+		L_DEBUG("=== Assigned TLV changed");
 		hncp_t_assigned_prefix_header data = tlv_data(tlv);
 		// Find the slice affected by this change
 		uint32_t slice = 0;
@@ -108,45 +111,31 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 		dncp_node_for_each_tlv_with_type(dncp_get_own_node(d), a, HNCP_T_SLICE_MEMBERSHIP) {
 			hncp_slice_membership_data_p my_data = tlv_data(a);
 			if (my_data->slice_id == slice) {
-				do_add_rules(d, ntohl(my_data->endpoint_id));
+				do_add_rules(d, ntohl(my_data->endpoint_id), tlv);
 			}
 		}
 	}
 }
 
 
-static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
+static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 //First we get the slice number corresponding to this ep_id
-
-	dncp_node myNode = dncp_get_own_node(dncp_inst);
-	struct tlv_attr* a = NULL;
 	uint32_t slice_id = 0;
-	L_ERR("Begin do_add_rules with endpoint %d",ep_id);
+	L_DEBUG("Begin do_add_rules with endpoint %d",ep_id);
 	//Now find the name of the interface
 	dncp_ep dep = NULL;
 	dep = dncp_find_ep_by_id(dncp_inst, ep_id);
 	if (dep == NULL){
-		L_ERR("This ep corresponds to nothing. Die !");
-		L_ERR("end of do_add_rules");
+		L_DEBUG("This ep corresponds to nothing. Die !");
+		L_DEBUG("end of do_add_rules");
 		return -1;
 	}
-	dncp_node_for_each_tlv_with_type(myNode, a, HNCP_T_SLICE_MEMBERSHIP)
-	{
-		hncp_slice_membership_data_p data =
-				(hncp_slice_membership_data_p) a->data;
-		uint32_t ep = ntohl(data->endpoint_id);
-		if (ep == ep_id) {
-			slice_id = ntohl(data->slice_id);
-			L_DEBUG("Found a slice for this endpoint : slice_id %d",slice_id);
-			break;
-		}
-
-	}
+	slice_id = ntohl(((hncp_slice_membership_data_p)tlv->data)->slice_id);
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
-		L_ERR("Null slice, flush everything");
+		L_DEBUG("Null slice, flush everything");
 		flush_slicing_config(dep->ifname);
-		L_ERR("end of do_add_rules");
+		L_DEBUG("end of do_add_rules");
 		return 0;
 	}
 	//Now I have the slice number, let us find all the (node,ep) on this slice
@@ -166,7 +155,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 				slice_content_p newEntry = calloc(1, sizeof(slice_content_s));
 
 				//!!!UGLY !!!
-				L_ERR("Node %d ep %d in slice %d",&n->node_id);
+				L_DEBUG("Node %d ep %d in slice %d",&n->node_id);
 
 				newEntry->ep_id = ep;
 				newEntry->node = n;
@@ -182,7 +171,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 							(hncp_t_assigned_prefix_header) pa_tlv->data;
 					if (ntohl(pa_data->ep_id) == ep_id) {
 						//Now assign the right prefix
-						L_ERR("Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",pa_data->prefix_data[0],
+						L_DEBUG("Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",pa_data->prefix_data[0],
 								pa_data->prefix_data[1],
 								pa_data->prefix_data[2],
 								pa_data->prefix_data[3],
@@ -225,12 +214,12 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 	int current_num_dp = 0;
 	dncp_tlv dp_tlv = NULL;
 	dncp_for_each_tlv(dncp_inst,dp_tlv){
-		L_ERR("Looking for DPs");
+		L_DEBUG("Looking for DPs");
 		struct tlv_attr* attr = dncp_tlv_get_attr(dp_tlv);
 		if(tlv_id(attr)==HNCP_T_DELEGATED_PREFIX){
 			dp_prefixes = realloc(dp_prefixes,(current_num_dp+1)*sizeof(struct prefix));
 			hncp_t_delegated_prefix_header dp_data = (hncp_t_delegated_prefix_header)attr->data;
-			L_ERR("Found DP %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",dp_data->prefix_data[0],
+			L_DEBUG("Found DP %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",dp_data->prefix_data[0],
 								dp_data->prefix_data[1],
 								dp_data->prefix_data[2],
 								dp_data->prefix_data[3],
@@ -253,7 +242,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id) {
 		}
 	}
 	update_slicing_config(dep->ifname,true,current_num_dp,dp_prefixes,current_len,accessibles);
-	L_ERR("end of do_add_rules");
+	L_DEBUG("end of do_add_rules");
 	free(dp_prefixes);
 	free(accessibles);
 return 0;
