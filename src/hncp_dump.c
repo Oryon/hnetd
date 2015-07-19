@@ -6,6 +6,8 @@
 #include "dncp_i.h"
 #include "hncp_i.h"
 #include "platform.h"
+#include "hncp_wifi.h"
+#include "hncp_slicing.h"
 
 #include <libubox/blobmsg_json.h>
 
@@ -216,6 +218,25 @@ static int hd_node_pim_bp(struct tlv_attr *tlv, struct blob_buf *b)
 	return 0;
 }
 
+static int hd_node_slice(struct tlv_attr *tlv, struct blob_buf *b)
+{
+	hncp_slice_membership_data_p slice = (hncp_slice_membership_data_p)tlv_data(tlv);
+	hd_a(!blobmsg_add_u32(b, "link", ntohl(slice->endpoint_id)), return -1);
+	hd_a(!blobmsg_add_u32(b, "slice", ntohl(slice->slice_id)), return -1);
+	return 0;
+}
+
+static int hd_node_wifi(struct tlv_attr *tlv, struct blob_buf *b)
+{
+	hncp_t_wifi_ssid wifi = (hncp_t_wifi_ssid)tlv_data(tlv);
+	char ssid[21] = {}, password[21] = {};
+	memcpy(ssid, wifi->ssid, 20);
+	memcpy(password, wifi->password, 20);
+	hd_a(!blobmsg_add_string(b, "ssid", ssid), return -1);
+	hd_a(!blobmsg_add_string(b, "password", password), return -1);
+	hd_a(!blobmsg_add_u32(b, "slice", ntohl(wifi->slice)), return -1);
+	return 0;
+}
 
 static int hd_node(dncp o, dncp_node n, struct blob_buf *b)
 {
@@ -227,7 +248,9 @@ static int hd_node(dncp o, dncp_node n, struct blob_buf *b)
 			externals = {NULL, NULL, 0, NULL},
 			addresses = {NULL, NULL, 0, NULL},
 			zones = {NULL, NULL, 0, NULL},
-			pim_bps = {NULL, NULL, 0, NULL};
+			pim_bps = {NULL, NULL, 0, NULL},
+			slices = {NULL, NULL, 0, NULL},
+			wifis = {NULL, NULL, 0, NULL};
 	int ret = -1;
 
 	hd_a(!blobmsg_add_u32(b, "update", n->update_number), return -1);
@@ -241,6 +264,8 @@ static int hd_node(dncp o, dncp_node n, struct blob_buf *b)
 	hd_a(!blob_buf_init(&addresses, BLOBMSG_TYPE_ARRAY), goto ad);
 	hd_a(!blob_buf_init(&zones, BLOBMSG_TYPE_ARRAY), goto zo);
 	hd_a(!blob_buf_init(&pim_bps, BLOBMSG_TYPE_ARRAY), goto bp);
+	hd_a(!blob_buf_init(&slices, BLOBMSG_TYPE_ARRAY), goto sl);
+	hd_a(!blob_buf_init(&wifis, BLOBMSG_TYPE_ARRAY), goto wi);
 
 	dncp_node_for_each_tlv(n, tlv) {
 		switch (tlv_id(tlv)) {
@@ -285,6 +310,12 @@ static int hd_node(dncp o, dncp_node n, struct blob_buf *b)
 			case HNCP_T_PIM_BORDER_PROXY:
 				hd_do_in_table(&pim_bps, NULL, hd_node_pim_bp(tlv, &pim_bps), goto err);
 				break;
+			case HNCP_T_SSID:
+				hd_do_in_table(&wifis, NULL, hd_node_wifi(tlv, &wifis), goto err);
+				break;
+			case HNCP_T_SLICE_MEMBERSHIP:
+				hd_do_in_table(&slices, NULL, hd_node_slice(tlv, &slices), goto err);
+				break;
 			default:
 				break;
 		}
@@ -296,8 +327,14 @@ static int hd_node(dncp o, dncp_node n, struct blob_buf *b)
 	hd_a(!blobmsg_add_named_blob(b, "addresses", addresses.head), goto err);
 	hd_a(!blobmsg_add_named_blob(b, "zones", zones.head), goto err);
 	hd_a(!blobmsg_add_named_blob(b, "pim_proxies", pim_bps.head), goto err);
+	hd_a(!blobmsg_add_named_blob(b, "slices", slices.head), goto err);
+	hd_a(!blobmsg_add_named_blob(b, "wifis", wifis.head), goto err);
 	ret = 0;
 err:
+	blob_buf_free(&wifis);
+wi:
+	blob_buf_free(&slices);
+sl:
 	blob_buf_free(&pim_bps);
 bp:
 	blob_buf_free(&zones);
