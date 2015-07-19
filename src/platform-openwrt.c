@@ -1359,6 +1359,8 @@ void update_slicing_config(char* iface, bool internet, int nb_inet_prefixes,stru
 		return;
 	}
 
+	L_DEBUG("slice : adding config for interface \"%s\" in zone \"%s\"");
+
 	uci_load(ctx, "firewall", &pkg);
 
 	ptr.p = pkg;
@@ -1451,6 +1453,8 @@ void flush_slicing_config(char* iface){
 		L_ERR("ERROR : zone not found");
 		return;
 	}
+
+	L_DEBUG("slice : flushing config for interface \"%s\" in zone \"%s\"");
 
 	ptr.p = pkg;
 
