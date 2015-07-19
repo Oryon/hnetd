@@ -155,7 +155,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 			hncp_slice_membership_data_p data =
 					(hncp_slice_membership_data_p) membership_tlv->data;
 			uint32_t sid = ntohl(data->slice_id);
-			uint32_t ep = ntohl(data->endpoint_id);
+			uint32_t ep = data->endpoint_id;
 			if (sid == slice_id) {
 				//It is the good slice, add an entry in s_cont
 				slice_content_p newEntry = calloc(1, sizeof(slice_content_s));
@@ -175,7 +175,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 				{
 					hncp_t_assigned_prefix_header pa_data =
 							(hncp_t_assigned_prefix_header) pa_tlv->data;
-					if (ntohl(pa_data->ep_id) == ep_id) {
+					if (pa_data->ep_id == ep_id) {
 						//Now assign the right prefix
 						L_ERR("Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",pa_data->prefix_data[0],
 								pa_data->prefix_data[1],
