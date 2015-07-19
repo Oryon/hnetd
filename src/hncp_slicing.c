@@ -121,16 +121,16 @@ void slicing_tlv_changed_callback(dncp_subscriber __unused s, dncp_node n, struc
 static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 //First we get the slice number corresponding to this ep_id
 	uint32_t slice_id = 0;
-	L_DEBUG("Begin do_add_rules with endpoint %d",ep_id);
+	L_DEBUG("Begin do_add_rules with endpoint %d", ep_id);
 	//Now find the name of the interface
 	dncp_ep dep = NULL;
 	dep = dncp_find_ep_by_id(dncp_inst, ep_id);
-	if (dep == NULL){
+	if (dep == NULL) {
 		L_DEBUG("This ep corresponds to nothing. Die !");
 		L_DEBUG("end of do_add_rules");
 		return -1;
 	}
-	slice_id = ntohl(((hncp_slice_membership_data_p)tlv->data)->slice_id);
+	slice_id = ntohl(((hncp_slice_membership_data_p) tlv->data)->slice_id);
 	//Did we found our slice number or is it zero?
 	if (slice_id == 0) {
 		L_DEBUG("Null slice, flush everything");
@@ -155,7 +155,7 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 				slice_content_p newEntry = calloc(1, sizeof(slice_content_s));
 
 				//!!!UGLY !!!
-				L_DEBUG("Node %d ep %d in slice %d",&n->node_id);
+				L_DEBUG("Node %d ep %d in slice %d", &n->node_id);
 
 				newEntry->ep_id = ep;
 				newEntry->node = n;
@@ -171,7 +171,9 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 							(hncp_t_assigned_prefix_header) pa_tlv->data;
 					if (ntohl(pa_data->ep_id) == ep_id) {
 						//Now assign the right prefix
-						L_DEBUG("Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",pa_data->prefix_data[0],
+						L_DEBUG(
+								"Found the prefix for that link : %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",
+								pa_data->prefix_data[0],
 								pa_data->prefix_data[1],
 								pa_data->prefix_data[2],
 								pa_data->prefix_data[3],
@@ -201,9 +203,11 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 	struct prefix* accessibles = NULL;
 	int current_len = 0;
 	while (s_cont != NULL) {
-		if(s_cont->p.plen!=0){
-			accessibles = realloc(accessibles,(current_len+1)*sizeof(struct prefix));
-			memcpy(&accessibles[current_len],&s_cont->p,sizeof(struct prefix));
+		if (s_cont->p.plen != 0) {
+			accessibles = realloc(accessibles,
+					(current_len + 1) * sizeof(struct prefix));
+			memcpy(&accessibles[current_len], &s_cont->p,
+					sizeof(struct prefix));
 			current_len++;
 		}
 		slice_content_p next = s_cont->next;
@@ -213,37 +217,39 @@ static int do_add_rules(dncp dncp_inst, uint32_t ep_id, struct tlv_attr *tlv) {
 	struct prefix* dp_prefixes = NULL;
 	int current_num_dp = 0;
 	dncp_tlv dp_tlv = NULL;
-	dncp_for_each_tlv(dncp_inst,dp_tlv){
-		L_DEBUG("Looking for DPs");
-		struct tlv_attr* attr = dncp_tlv_get_attr(dp_tlv);
-		if(tlv_id(attr)==HNCP_T_DELEGATED_PREFIX){
-			dp_prefixes = realloc(dp_prefixes,(current_num_dp+1)*sizeof(struct prefix));
-			hncp_t_delegated_prefix_header dp_data = (hncp_t_delegated_prefix_header)attr->data;
-			L_DEBUG("Found DP %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",dp_data->prefix_data[0],
-								dp_data->prefix_data[1],
-								dp_data->prefix_data[2],
-								dp_data->prefix_data[3],
-								dp_data->prefix_data[4],
-								dp_data->prefix_data[5],
-								dp_data->prefix_data[6],
-								dp_data->prefix_data[7],
-								dp_data->prefix_data[8],
-								dp_data->prefix_data[9],
-								dp_data->prefix_data[10],
-								dp_data->prefix_data[11],
-								dp_data->prefix_data[12],
-								dp_data->prefix_data[13],
-								dp_data->prefix_data[14],
-								dp_data->prefix_data[15],
-								dp_data->prefix_length_bits);
-			memcpy(&dp_prefixes[current_num_dp].prefix,dp_data->prefix_data,16);
-			dp_prefixes[current_num_dp].plen = dp_data->prefix_length_bits;
-			current_num_dp++;
+	dncp_for_each_tlv(dncp_inst,dp_tlv)
+	{
+		struct tlv_attr* attrRoot = dncp_tlv_get_attr(dp_tlv);
+		if (tlv_id(attrRoot) == HNCP_T_EXTERNAL_CONNECTION) {
+			struct tlv_attr* attr = NULL;
+			tlv_for_each_attr(attr,attrRoot)
+				if (tlv_id(attr) == HNCP_T_DELEGATED_PREFIX) {
+					dp_prefixes = realloc(dp_prefixes,
+							(current_num_dp + 1) * sizeof(struct prefix));
+					hncp_t_delegated_prefix_header dp_data =
+							(hncp_t_delegated_prefix_header) attr->data;
+					L_DEBUG("Found DP %x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x/%d",
+							dp_data->prefix_data[0], dp_data->prefix_data[1],
+							dp_data->prefix_data[2], dp_data->prefix_data[3],
+							dp_data->prefix_data[4], dp_data->prefix_data[5],
+							dp_data->prefix_data[6], dp_data->prefix_data[7],
+							dp_data->prefix_data[8], dp_data->prefix_data[9],
+							dp_data->prefix_data[10], dp_data->prefix_data[11],
+							dp_data->prefix_data[12], dp_data->prefix_data[13],
+							dp_data->prefix_data[14], dp_data->prefix_data[15],
+							dp_data->prefix_length_bits);
+					memcpy(&dp_prefixes[current_num_dp].prefix,
+							dp_data->prefix_data, 16);
+					dp_prefixes[current_num_dp].plen =
+							dp_data->prefix_length_bits;
+					current_num_dp++;
+				}
 		}
 	}
-	update_slicing_config(dep->ifname,true,current_num_dp,dp_prefixes,current_len,accessibles);
+	update_slicing_config(dep->ifname, true, current_num_dp, dp_prefixes,
+			current_len, accessibles);
 	L_DEBUG("end of do_add_rules");
 	free(dp_prefixes);
 	free(accessibles);
-return 0;
+	return 0;
 }
